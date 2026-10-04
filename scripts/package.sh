@@ -4,18 +4,11 @@
 #
 # Package the app for installation into a Nextcloud apps/ directory:
 #   build/artifacts/public_share_control-<version>.tar.gz
-# containing a single top-level public_share_control/ directory.
 #
-# Run `npm ci && npm run build` first — the package ships the built js/ and
-# css/ (Nextcloud runs no build step). Only an explicit allowlist is packaged,
-# so development files (src/, tests/, dev/, node_modules/, vendor/, configs)
-# can't slip in. vendor/ is deliberately not shipped: Nextcloud never loads
-# it (OC_App::registerAutoloading only looks for composer/autoload.php and
-# otherwise maps the app namespace to lib/ itself), and this app has no PHP
-# runtime dependencies. Besides runtime files, only three kinds of file are
-# shipped: CHANGELOG.md (the app store reads each release's changelog from
-# the package), LICENSE and the js/*.license files (AGPL and the licenses of
-# the bundled npm dependencies must accompany the distributed code).
+# Run `npm ci && npm run build` first. Only an explicit allowlist is packaged:
+# runtime files, CHANGELOG.md (read by the app store), LICENSE and the
+# js/*.license files of the bundled dependencies. No vendor/: Nextcloud never
+# loads it (see "Releasing" in AGENTS.md).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

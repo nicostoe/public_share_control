@@ -11,7 +11,6 @@ namespace OCA\PublicShareControl\Settings;
 
 use OCA\PublicShareControl\AppInfo\Application;
 use OCA\PublicShareControl\Service\AdminConfig;
-use OCP\App\IAppManager;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\Files\Template\ITemplateManager;
@@ -29,22 +28,20 @@ final class Admin implements ISettings {
 		private IInitialState $initialState,
 		private ITemplateManager $templateManager,
 		private AdminConfig $adminConfig,
-		private IAppManager $appManager,
 	) {
 	}
 
 	#[\Override]
 	public function getForm(): TemplateResponse {
 		// The only server-side list of "New" menu entries: those created from
-		// templates. "New folder" and the Text app's "Add folder description"
-		// exist only client-side and are fixed rows in AdminSettings.vue.
+		// templates. The others are found in an administrator's Files app.
 		$templateCreators = array_map(
 			static fn (TemplateFileCreator $creator): array => $creator->jsonSerialize(),
 			$this->templateManager->listCreators(),
 		);
 
 		$this->initialState->provideInitialState('template-creators', $templateCreators);
-		$this->initialState->provideInitialState('text-app-enabled', $this->appManager->isEnabledForAnyone('text'));
+		$this->initialState->provideInitialState(Application::CONFIG_DISCOVERED_ENTRIES_KEY, $this->adminConfig->getDiscoveredEntries());
 		$this->initialState->provideInitialState(Application::CONFIG_DEFAULT_HIDDEN_KEY, $this->adminConfig->getDefaultHiddenEntries());
 		$this->initialState->provideInitialState(Application::CONFIG_FORBIDDEN_KEY, $this->adminConfig->getForbiddenEntries());
 		$this->initialState->provideInitialState(Application::CONFIG_QUICK_UPLOAD_ENABLED_KEY, $this->adminConfig->isQuickUploadEnabled());

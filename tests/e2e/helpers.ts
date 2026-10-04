@@ -12,9 +12,8 @@ export const ADMIN_PASSWORD = 'Admin1234!'
 const AUTH = 'Basic ' + Buffer.from(`${ADMIN_USER}:${ADMIN_PASSWORD}`).toString('base64')
 
 /**
- * Run an occ command in a test instance container. Returns stdout; idempotent
- * commands (disabling an already disabled app, deleting an unset key) are
- * allowed to "fail" quietly, everything else is the caller's to check.
+ * Run an occ command in a test instance container and return its stdout.
+ * Failures are left to the caller to check.
  *
  * @param container the Docker container of the instance
  * @param args the occ arguments
@@ -24,13 +23,9 @@ export function occ(container: string, ...args: string[]): string {
 }
 
 /**
- * Set one of this app's admin settings directly (the admin page is tested
- * separately; most tests only need the setting in place).
- *
- * Goes through the web server's app config endpoint — the same one the admin
- * page uses — rather than `occ`: the test instances cache app config in APCu,
- * which the CLI doesn't share, so values written by `occ` would only reach
- * the web server once its cache expires.
+ * Set one of this app's admin settings through the web server's app config
+ * endpoint, not `occ`: the instances cache app config in APCu, which the CLI
+ * doesn't share.
  *
  * @param baseURL the instance's base URL
  * @param key the app config key
@@ -41,14 +36,47 @@ export async function setAppConfig(baseURL: string, key: string, value: string):
 }
 
 /**
- * Remove all of this app's admin settings again.
+ * Remove all of this app's admin settings and discovered entries again.
  *
  * @param baseURL the instance's base URL
  */
 export async function resetAppConfig(baseURL: string): Promise<void> {
-	for (const key of ['default-hidden-entries', 'forbidden-entries', 'quick-upload-enabled']) {
+	for (const key of ['default-hidden-entries', 'forbidden-entries', 'quick-upload-enabled', 'discovered-entries']) {
 		await appConfigRequest(baseURL, key, { method: 'DELETE' })
 	}
+}
+
+/**
+ * Let the app discover the "New" menu entries: forget the stored ones, open
+ * the Files app as the logged-in admin and wait until the list is stored.
+ *
+ * @param page a page logged in as the test admin
+ * @param baseURL the instance's base URL
+ */
+export async function discoverEntries(page: Page, baseURL: string): Promise<void> {
+	await appConfigRequest(baseURL, 'discovered-entries', { method: 'DELETE' })
+	const stored = page.waitForResponse((response) => response.url().endsWith('/apps/public_share_control/discovered-entries') && response.request().method() === 'POST')
+	await page.goto('/index.php/apps/files/files')
+	if (!(await stored).ok()) {
+		throw new Error('Storing the discovered entries failed')
+	}
+}
+
+/**
+ * POST to the discovery endpoint from a logged-in page, with its CSRF token.
+ *
+ * @param page a page logged in as the test admin
+ * @param body the request body
+ */
+export async function postDiscoveredEntries(page: Page, body: unknown): Promise<number> {
+	return page.evaluate(async (payload) => {
+		const response = await fetch('/index.php/apps/public_share_control/discovered-entries', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', requesttoken: document.head.dataset.requesttoken ?? '' },
+			body: JSON.stringify(payload),
+		})
+		return response.status
+	}, body)
 }
 
 /**

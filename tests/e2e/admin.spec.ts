@@ -6,7 +6,7 @@
 import type { TestShare } from './helpers.ts'
 
 import { expect, test } from '@playwright/test'
-import { login, openShareEditor, openSharingSidebar, publicNewMenu, resetAppConfig, selectionButton, setAppConfig, testShare } from './helpers.ts'
+import { discoverEntries, login, openShareEditor, openSharingSidebar, publicNewMenu, resetAppConfig, selectionButton, setAppConfig, testShare } from './helpers.ts'
 
 let share: TestShare
 
@@ -31,6 +31,7 @@ test('admin page uses the same icons as the real "New" menu', async ({ page, bro
 	await visitor.context().close()
 
 	await login(page)
+	await discoverEntries(page, baseURL!)
 	await page.goto('/index.php/settings/admin/sharing')
 	const section = page.locator('#public_share_control-settings')
 	for (const label of ['New folder', 'Text document', 'Add folder description']) {
@@ -51,10 +52,8 @@ test('a forbidden entry is disabled for owners and hidden from visitors', async 
 	const forbiddenRow = page.locator('.checkbox-radio-switch', { hasText: 'New folder' })
 	await expect(forbiddenRow.locator('input')).toBeDisabled()
 
-	// Hover tooltip: browsers show the `title` of the element under the
-	// pointer or its nearest ancestor that has one. Check both the checkbox
-	// glyph (left edge) and the label text of the forbidden row — and that
-	// an allowed row has no tooltip.
+	// Browsers show the `title` of the element under the pointer or its nearest
+	// ancestor: check the checkbox glyph, the label, and an allowed row.
 	const tooltipAt = async (row: typeof forbiddenRow, xOffset: number) => {
 		const box = (await row.boundingBox())!
 		return page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[title]')?.getAttribute('title') ?? null, { x: box.x + xOffset, y: box.y + box.height / 2 })

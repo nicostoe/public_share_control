@@ -34,13 +34,10 @@ function pickFiles(): Promise<File[]> {
 }
 
 /**
- * Ask the visitor how to handle files whose name already exists in the target
- * folder, with Nextcloud's own conflict dialog. Without a callback,
- * batchUpload() overwrites existing files.
- *
- * Returns batchUpload()'s callback contract: a map of incoming name → name to
- * upload under (same name = overwrite, other name = upload renamed, missing =
- * skip), or `false` to cancel the whole upload.
+ * Ask the visitor how to handle existing file names, with Nextcloud's conflict
+ * dialog (batchUpload() overwrites without asking). Returns batchUpload()'s
+ * callback contract: incoming name → name to upload under (same = overwrite,
+ * other = renamed, missing = skip), or `false` to cancel.
  *
  * @param files the files the visitor picked
  * @param folder the target folder
@@ -75,12 +72,9 @@ async function resolveConflicts(files: File[], folder: IFolder, contents: INode[
 }
 
 /**
- * Resolve once an upload can no longer change state. `batchUpload()` resolves
- * as soon as the uploads are queued — the PUT is often still running then, so
- * stat-ing right away returns 404. Started uploads dispatch `finished` in every
- * terminal state (status already set). Uploads skipped in the conflict dialog
- * are only aborted and never start, so they never dispatch `finished` — their
- * abort signal is what ends the wait for them.
+ * Resolve once an upload can no longer change state; batchUpload() resolves as
+ * soon as uploads are queued. Uploads skipped in the conflict dialog are only
+ * aborted and never dispatch `finished`, so the abort signal ends their wait.
  *
  * @param upload the upload to wait for
  */
@@ -145,10 +139,8 @@ export function registerQuickUploadAction(): void {
 				return false
 			}
 
-			// batchUpload() returns one upload per file plus a trailing upload for
-			// the whole batch. A file's final name is its upload's destination
-			// (`source`, not URL-encoded) — which differs from the picked file's
-			// name if it was renamed in the conflict dialog.
+			// One upload per file plus one for the batch. A file's final name ends
+			// its `source` (not URL-encoded) and may differ from the picked name.
 			const settled = await Promise.all(uploads.map(waitForUpload))
 			const uploadedNames = settled
 				.filter((upload) => upload.status === UploadStatus.FINISHED && upload.children.length === 0)

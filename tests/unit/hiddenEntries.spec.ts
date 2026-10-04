@@ -117,3 +117,77 @@ describe('templateIdFormatMatches', () => {
 		expect(templateIdFormatMatches(['newFolder'], 'files')).toBe(true)
 	})
 })
+
+describe('iconFingerprint', () => {
+	it('is FNV-1a with 64 bits', async () => {
+		const { iconFingerprint } = await load()
+		// Reference values of the FNV-1a specification.
+		expect(iconFingerprint('')).toBe('cbf29ce484222325')
+		expect(iconFingerprint('a')).toBe('af63dc4c8601ec8c')
+	})
+
+	it('hashes the UTF-8 bytes', async () => {
+		const { iconFingerprint } = await load()
+		expect(iconFingerprint('<svg>ä</svg>')).not.toBe(iconFingerprint('<svg>a</svg>'))
+		expect(iconFingerprint('<svg>ä</svg>')).toMatch(/^[0-9a-f]{16}$/)
+	})
+})
+
+describe('uniqueIconHashes', () => {
+	it('keeps only icons that occur once, and no empty ones', async () => {
+		const { iconFingerprint, uniqueIconHashes } = await load()
+		const unique = uniqueIconHashes(['<svg>a</svg>', '<svg>b</svg>', '<svg>b</svg>', ''])
+		expect([...unique]).toEqual([iconFingerprint('<svg>a</svg>')])
+	})
+})
+
+describe('matching by icon fingerprint', () => {
+	const DOCX = '<svg>docx</svg>'
+	const XLSX = '<svg>xlsx</svg>'
+
+	it('links an entry registered under another id on public pages', async () => {
+		// The Files app lists it as a template entry, the public page under the app's own id.
+		templates.files_sharing = [{ app: 'text', extension: '.md' }]
+		const { iconFingerprint, matchesHiddenEntry } = await load()
+		const saved = [{ id: 'template-new-onlyoffice-1', displayName: 'New document', templateKey: 'onlyoffice:.docx', iconHash: iconFingerprint(DOCX) }]
+		expect(matchesHiddenEntry({ id: 'new-onlyoffice-docx', displayName: 'Neues Dokument', iconSvgInline: DOCX }, saved, 'files_sharing')).toBe(true)
+		expect(matchesHiddenEntry({ id: 'new-onlyoffice-xlsx', displayName: 'Neue Tabelle', iconSvgInline: XLSX }, saved, 'files_sharing')).toBe(false)
+	})
+
+	it('ignores the display name of entries stored with a fingerprint', async () => {
+		const { iconFingerprint, matchesHiddenEntry } = await load()
+		const saved = [{ id: 'new-onlyoffice-docx', displayName: 'New document', iconHash: iconFingerprint(DOCX) }]
+		// Another app's entry with the same name but its own icon.
+		expect(matchesHiddenEntry({ id: 'new-collabora-docx', displayName: 'New document', iconSvgInline: '<svg>other</svg>' }, saved, 'files_sharing')).toBe(false)
+	})
+
+	it('keeps a valid fingerprint when parsing and drops an invalid one', async () => {
+		const { normalizeHiddenEntries } = await load()
+		expect(normalizeHiddenEntries([{ id: 'a', iconHash: '0123456789abcdef' }, { id: 'b', iconHash: 'not-a-hash' }]))
+			.toEqual([{ id: 'a', iconHash: '0123456789abcdef' }, { id: 'b' }])
+	})
+})
+
+describe('normalizeDiscoveredEntries', () => {
+	it('keeps controllable entries and defaults the order', async () => {
+		const { normalizeDiscoveredEntries } = await load()
+		expect(normalizeDiscoveredEntries([
+			{ id: 'new-onlyoffice-pdf', label: 'New PDF form', category: 1, icon: '<svg/>', order: 24 },
+			{ id: 'rich-workspace-init', label: 'Add folder description', category: 2, icon: '' },
+		])).toEqual([
+			{ id: 'new-onlyoffice-pdf', label: 'New PDF form', category: 1, icon: '<svg/>', order: 24 },
+			{ id: 'rich-workspace-init', label: 'Add folder description', category: 2, icon: '', order: 0 },
+		])
+	})
+
+	it('drops uploads, malformed items and anything but an array', async () => {
+		const { normalizeDiscoveredEntries } = await load()
+		expect(normalizeDiscoveredEntries([
+			{ id: 'upload', label: 'Upload files', category: 0, icon: '' },
+			{ id: '', label: 'No id', category: 1, icon: '' },
+			{ id: 'no-icon', label: 'No icon', category: 1 },
+			null,
+		])).toEqual([])
+		expect(normalizeDiscoveredEntries({ id: 'x' })).toEqual([])
+	})
+})

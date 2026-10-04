@@ -7,7 +7,7 @@ import type { Page } from '@playwright/test'
 import type { TestShare } from '../tests/e2e/helpers.ts'
 
 import { test } from '@playwright/test'
-import { dav, login, openShareEditor, openSharingSidebar, resetAppConfig, selectionButton, testShare } from '../tests/e2e/helpers.ts'
+import { dav, discoverEntries, login, openShareEditor, openSharingSidebar, resetAppConfig, selectionButton, testShare } from '../tests/e2e/helpers.ts'
 
 // One consistent story across all three screenshots: the admin hides "Text
 // document" by default and forbids "Add folder description"; the link
@@ -59,8 +59,9 @@ test.afterAll(async ({ baseURL }) => {
 	await dav(baseURL!, PARENT, { method: 'DELETE' })
 })
 
-test('admin settings', async ({ page }) => {
+test('admin settings', async ({ page, baseURL }) => {
 	await login(page)
+	await discoverEntries(page, baseURL!)
 	await page.goto('/index.php/settings/admin/sharing')
 	await setAdminSwitch(page, 'Text document', 'Hidden by default')
 	await setAdminSwitch(page, 'Add folder description', 'Forbidden')

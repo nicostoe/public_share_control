@@ -11,6 +11,7 @@ import { FileType } from '@nextcloud/files'
 import { registerSidebarAction } from '@nextcloud/sharing/ui'
 import { defineCustomElement } from 'vue'
 import HideCreateNewEntry from './components/HideCreateNewEntry.vue'
+import { discoverNewMenuEntries } from './discovery.ts'
 
 const CUSTOM_ELEMENT_ID = 'oca_public_share_control-sharing_action'
 
@@ -38,3 +39,4 @@ if (!window.customElements.get(CUSTOM_ELEMENT_ID)) {
 }
 
 registerSidebarAction(sharingAction)
+discoverNewMenuEntries()

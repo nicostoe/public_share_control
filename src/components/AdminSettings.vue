@@ -59,7 +59,7 @@
 		</div>
 
 		<p :class="$style.hint">
-			{{ t('public_share_control', 'Only entries Nextcloud can list on the server appear here. Entries that apps add in a non-standard way can\'t be restricted on this page.') }}
+			{{ t('public_share_control', 'Entries that other apps add to the "New" menu appear here once an administrator has opened the Files app.') }}
 		</p>
 		<p :class="$style.hint">
 			{{ t('public_share_control', 'This only hides menu entries. Visitors with upload permission could still create files and folders by other means, e.g. WebDAV.') }}
@@ -68,11 +68,11 @@
 </template>
 
 <script lang="ts">
-import type { HiddenEntryRef } from '../hiddenEntries.ts'
+import type { DiscoveredEntry, HiddenEntryRef } from '../hiddenEntries.ts'
 
-import { mdiFolderPlusOutline, mdiText } from '@mdi/js'
 import axios from '@nextcloud/axios'
 import { showError } from '@nextcloud/dialogs'
+import { NewMenuEntryCategory } from '@nextcloud/files'
 import { loadState } from '@nextcloud/initial-state'
 import { t } from '@nextcloud/l10n'
 import { confirmPassword } from '@nextcloud/password-confirmation'
@@ -81,8 +81,8 @@ import { defineComponent } from 'vue'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
-import { DEFAULT_HIDDEN_ENTRIES_KEY, FORBIDDEN_ENTRIES_KEY, QUICK_UPLOAD_ENABLED_KEY } from '../constants.ts'
-import { normalizeHiddenEntries } from '../hiddenEntries.ts'
+import { DEFAULT_HIDDEN_ENTRIES_KEY, DISCOVERED_ENTRIES_KEY, FORBIDDEN_ENTRIES_KEY, QUICK_UPLOAD_ENABLED_KEY } from '../constants.ts'
+import { iconFingerprint, normalizeDiscoveredEntries, normalizeHiddenEntries, uniqueIconHashes } from '../hiddenEntries.ts'
 import { logger } from '../logger.ts'
 
 const APP_ID = 'public_share_control'
@@ -90,34 +90,23 @@ const APP_ID = 'public_share_control'
 type TemplateCreator = { app: string, label: string, extension: string, iconSvgInline: string | null }
 
 /**
- * One row of the entry list. Template-based entries have a `templateKey`
- * (`<app>:<extension>`, see hiddenEntries.ts) as their key; the fixed rows
- * use their stable ids.
+ * One row of the entry list. Template-based entries are keyed by their
+ * `templateKey` (`<app>:<extension>`, see hiddenEntries.ts), the others by id.
  */
 type EntryRow = { key: string, label: string, iconSvgInline: string | null, templateKey?: string }
 
 /**
- * Inline SVG for an `@mdi/js` icon path. The fixed rows use the same icons as
- * the real menu entries.
+ * Rows for the discovered entries of one category, in menu order.
  *
- * @param path the icon's SVG path data
+ * @param entries the discovered entries
+ * @param category the NewMenuEntryCategory to list
  */
-function mdiSvg(path: string): string {
-	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="${path}" /></svg>`
+function discoveredRows(entries: DiscoveredEntry[], category: number): EntryRow[] {
+	return entries
+		.filter((entry) => entry.category === category)
+		.sort((a, b) => a.order - b.order)
+		.map((entry) => ({ key: entry.id, label: entry.label, iconSvgInline: entry.icon || null }))
 }
-
-/**
- * "New folder" exists only client-side, so it isn't in the server's list (see
- * Settings/Admin.php) and is a fixed row. Entries other apps add the same way
- * can't be listed at all, as the page says.
- */
-const NEW_FOLDER_ROW: EntryRow = { key: 'newFolder', label: t('public_share_control', 'New folder'), iconSvgInline: mdiSvg(mdiFolderPlusOutline) }
-
-/**
- * The Text app's "Add folder description", also client-side only. Shown when
- * the Text app is enabled.
- */
-const FOLDER_DESCRIPTION_ROW: EntryRow = { key: 'rich-workspace-init', label: t('public_share_control', 'Add folder description'), iconSvgInline: mdiSvg(mdiText) }
 
 export default defineComponent({
 	name: 'AdminSettings',
@@ -130,13 +119,15 @@ export default defineComponent({
 
 	data() {
 		const templateCreators = loadState<TemplateCreator[]>(APP_ID, 'template-creators', [])
+		const discovered = normalizeDiscoveredEntries(loadState(APP_ID, DISCOVERED_ENTRIES_KEY, []))
+		// In menu order: "Create new" entries, including the template-based ones, then "Other".
 		const rows: EntryRow[] = [
-			NEW_FOLDER_ROW,
+			...discoveredRows(discovered, NewMenuEntryCategory.CreateNew),
 			...templateCreators.map((creator): EntryRow => {
 				const templateKey = `${creator.app}:${creator.extension}`
 				return { key: templateKey, label: creator.label, iconSvgInline: creator.iconSvgInline, templateKey }
 			}),
-			...(loadState<boolean>(APP_ID, 'text-app-enabled', false) ? [FOLDER_DESCRIPTION_ROW] : []),
+			...discoveredRows(discovered, NewMenuEntryCategory.Other),
 		]
 
 		const defaultHidden = normalizeHiddenEntries(loadState(APP_ID, DEFAULT_HIDDEN_ENTRIES_KEY, []))
@@ -149,6 +140,8 @@ export default defineComponent({
 
 		return {
 			rows,
+			// Icons that tell the rows apart; stored with the entries (see toRefs()).
+			uniqueIcons: uniqueIconHashes(rows.map((row) => row.iconSvgInline ?? '')),
 			defaultHiddenKeys,
 			forbiddenKeys,
 			// Last state the server confirmed, restored when a save fails.
@@ -207,10 +200,9 @@ export default defineComponent({
 		},
 
 		/**
-		 * Save both entry lists. Saves never overlap, since requests landing out
-		 * of order could revert a newer change: a change during a save is saved
-		 * by one more round. If a save fails or the password confirmation is
-		 * cancelled, the switches return to the last confirmed state.
+		 * Save both entry lists. Saves never overlap (out-of-order requests could
+		 * revert a newer change); changes during a save get one more round. On
+		 * failure or a cancelled password confirmation, the switches revert.
 		 */
 		async saveEntries() {
 			if (this.entriesSaving) {
@@ -252,7 +244,12 @@ export default defineComponent({
 				if (row === undefined) {
 					return this.storedRefs.get(key) ?? { id: key }
 				}
-				return row.templateKey !== undefined ? { id: row.templateKey, templateKey: row.templateKey } : { id: row.key }
+				const ref: HiddenEntryRef = row.templateKey !== undefined ? { id: row.templateKey, templateKey: row.templateKey } : { id: row.key }
+				const iconHash = row.iconSvgInline ? iconFingerprint(row.iconSvgInline) : undefined
+				if (iconHash !== undefined && this.uniqueIcons.has(iconHash)) {
+					ref.iconHash = iconHash
+				}
+				return ref
 			})
 		},
 

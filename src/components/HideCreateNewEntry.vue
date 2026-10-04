@@ -62,18 +62,12 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
 import PlaylistEdit from 'vue-material-design-icons/PlaylistEdit.vue'
 import { ATTRIBUTE_KEY, ATTRIBUTE_SCOPE, DEFAULT_HIDDEN_ENTRIES_KEY, FORBIDDEN_ENTRIES_KEY } from '../constants.ts'
-import { isControllableEntry, matchesHiddenEntry, normalizeHiddenEntries, templateIdFormatMatches, templateKeyFor } from '../hiddenEntries.ts'
+import { iconFingerprint, isControllableEntry, matchesHiddenEntry, NEVER_PUBLIC_ENTRY_IDS, normalizeHiddenEntries, templateIdFormatMatches, templateKeyFor, uniqueIconHashes } from '../hiddenEntries.ts'
 import { logger } from '../logger.ts'
 
 type ShareAttribute = { scope: string, key: string, value: unknown }
 type ShareLike = { id: string, attributes: ShareAttribute[] }
 type NewMenuEntryLike = { id: string, displayName: string, iconSvgInline: string, order?: number }
-
-/**
- * Core entries that never show for visitors: "file-request" is disabled on
- * public pages, "template-picker" needs a signed-in owner.
- */
-const NEVER_PUBLIC_ENTRY_IDS = new Set(['file-request', 'template-picker'])
 
 const defaultHiddenEntries = normalizeHiddenEntries(loadState('public_share_control', DEFAULT_HIDDEN_ENTRIES_KEY, []))
 const forbiddenEntries = normalizeHiddenEntries(loadState('public_share_control', FORBIDDEN_ENTRIES_KEY, []))
@@ -209,6 +203,8 @@ export default defineComponent({
 		const hiddenIds = computeHiddenIds(entries, this.share)
 		return {
 			entries,
+			// Icons that tell the entries apart; stored with them (see writeSelection()).
+			uniqueIcons: uniqueIconHashes(entries.map((entry) => entry.iconSvgInline)),
 			forbiddenIds: computeForbiddenIds(entries),
 			hiddenIds,
 			// Last saved state, restored if the editor closes without saving.
@@ -279,12 +275,10 @@ export default defineComponent({
 		},
 
 		/**
-		 * Write the selection into the share's attributes for core's
-		 * "Update share" request. Back at the saved selection, the saved
-		 * attribute is restored exactly, including "none", so the link keeps
-		 * following the admin defaults. Each entry is stored with its
-		 * templateKey, since template entry ids aren't stable. Forbidden
-		 * entries apply anyway and aren't stored.
+		 * Write the selection into the share's attributes for core's "Update
+		 * share" request. Back at the saved selection, the saved attribute (or
+		 * its absence) is restored, so the link keeps following the admin
+		 * defaults. Forbidden entries apply anyway and aren't stored.
 		 */
 		writeSelection() {
 			if (sameIds(this.hiddenIds, this.savedHiddenIds)) {
@@ -293,7 +287,15 @@ export default defineComponent({
 			}
 			const value = this.entries
 				.filter((entry) => this.hiddenIds.has(entry.id) && !this.forbiddenIds.has(entry.id))
-				.map((entry) => ({ id: entry.id, displayName: entry.displayName, templateKey: templateKeyFor(entry.id, 'files') }))
+				.map((entry) => {
+					const iconHash = entry.iconSvgInline ? iconFingerprint(entry.iconSvgInline) : undefined
+					return {
+						id: entry.id,
+						displayName: entry.displayName,
+						templateKey: templateKeyFor(entry.id, 'files'),
+						iconHash: iconHash !== undefined && this.uniqueIcons.has(iconHash) ? iconHash : undefined,
+					}
+				})
 			writeOwnAttribute(this.share, { scope: ATTRIBUTE_SCOPE, key: ATTRIBUTE_KEY, value })
 		},
 

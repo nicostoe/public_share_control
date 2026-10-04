@@ -75,13 +75,14 @@ What stays behind has no effect:
   share attribute. Without the app nothing reads it; it goes away when the
   link is deleted, and new links never get it. If you install the app
   again, these selections apply again.
-- The admin settings stay in the app config, so a reinstall keeps them too.
-  To delete them:
+- The admin settings and the list of "New" menu entries found in the Files
+  app stay in the app config, so a reinstall keeps them too. To delete them:
 
   ```bash
   sudo -u www-data php occ config:app:delete public_share_control default-hidden-entries
   sudo -u www-data php occ config:app:delete public_share_control forbidden-entries
   sudo -u www-data php occ config:app:delete public_share_control quick-upload-enabled
+  sudo -u www-data php occ config:app:delete public_share_control discovered-entries
   ```
 
 ## Usage
@@ -120,13 +121,12 @@ instance-wide:
   immediately to every existing link as well.
 - Whether the quick-upload button appears at all (on by default).
 
-Only entries Nextcloud itself can enumerate server-side are listed: every
-document/spreadsheet/diagram/whiteboard-style entry registered through
-Nextcloud's own template mechanism, plus the built-in "New folder" and —
-when the Text app is enabled — its "Add folder description". A
-menu entry some other app adds through a different, non-standard
-mechanism has no server-side registry and can't be listed or restricted
-from this page.
+The page lists every entry of the "New" menu. Entries created from
+templates (documents, spreadsheets, diagrams, whiteboards, …) come from the
+server; all others — "New folder", the Text app's "Add folder description",
+OnlyOffice's "New PDF form" and whatever other apps add — appear once an
+administrator has opened the Files app, where the app notes which entries
+are registered. Entries of apps installed later show up the same way.
 
 Entries from apps installed later are visible by default everywhere — all
 lists are "what to hide" lists, so anything not on one stays visible until

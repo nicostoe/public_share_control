@@ -36,10 +36,8 @@ final class BeforeTemplateRenderedListener implements IEventListener {
 			return;
 		}
 
-		// The event also fires for the password page of protected links (scope
-		// SCOPE_PUBLIC_SHARE_AUTH). Only the share page itself has no scope, so
-		// nothing reaches a visitor before the password, whatever scopes core
-		// adds later.
+		// Only the share page itself has no scope; the password page of
+		// protected links (SCOPE_PUBLIC_SHARE_AUTH) must get nothing.
 		if ($event->getScope() !== null) {
 			return;
 		}

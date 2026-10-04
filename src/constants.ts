@@ -14,3 +14,5 @@ export const ATTRIBUTE_KEY = 'hidden-create-entries'
 export const DEFAULT_HIDDEN_ENTRIES_KEY = 'default-hidden-entries'
 export const FORBIDDEN_ENTRIES_KEY = 'forbidden-entries'
 export const QUICK_UPLOAD_ENABLED_KEY = 'quick-upload-enabled'
+// Entries found in an administrator's Files app, see src/discovery.ts.
+export const DISCOVERED_ENTRIES_KEY = 'discovered-entries'

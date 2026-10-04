@@ -37,6 +37,13 @@ final class Application extends App implements IBootstrap {
 	public const CONFIG_FORBIDDEN_KEY = 'forbidden-entries';
 	public const CONFIG_QUICK_UPLOAD_ENABLED_KEY = 'quick-upload-enabled';
 
+	/**
+	 * Lazy app config key with the "New" menu entries found in an
+	 * administrator's Files app (see src/discovery.ts). Must match
+	 * src/constants.ts.
+	 */
+	public const CONFIG_DISCOVERED_ENTRIES_KEY = 'discovered-entries';
+
 	public function __construct() {
 		parent::__construct(self::APP_ID);
 	}
