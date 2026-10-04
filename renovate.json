@@ -2,9 +2,9 @@
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
 	"extends": [
 		"config:recommended",
-		"group:allNonMajor",
-		":approveMajorUpdates"
+		"group:allNonMajor"
 	],
+	"dependencyDashboard": false,
 	"timezone": "Europe/Berlin",
 	"schedule": [
 		"* 0-5 * * 1"
@@ -44,6 +44,24 @@
 				"nextcloud"
 			],
 			"enabled": false
+		},
+		{
+			"description": "Nextcloud's build config @nextcloud/vite-config decides which vite major works: 2.x only accepts vite 7 as a peer dependency, vite 8 needs @nextcloud/vite-config 3. Raise this limit only together with @nextcloud/vite-config.",
+			"matchPackageNames": [
+				"vite"
+			],
+			"allowedVersions": "<8"
+		},
+		{
+			"description": "Major updates of vite and @nextcloud/vite-config come in one PR, so the switch to a new vite major happens in a single update.",
+			"matchPackageNames": [
+				"vite",
+				"@nextcloud/vite-config"
+			],
+			"matchUpdateTypes": [
+				"major"
+			],
+			"groupName": "vite"
 		}
 	]
 }

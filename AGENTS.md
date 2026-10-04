@@ -127,3 +127,12 @@ git tag v1.0.0 && git push origin v1.0.0
 The tag triggers `.github/workflows/release.yml`: it refuses tags whose version differs from `info.xml`/`package.json` or that have no CHANGELOG section, runs the complete CI (`ci.yml`, incl. e2e on NC34+35) and then publishes a GitHub release with `public_share_control-<version>.tar.gz` attached (also kept as a workflow artifact); the release notes are that version's CHANGELOG section (`scripts/release-notes.sh`).
 
 `scripts/package.sh` packages an explicit allowlist — `appinfo`, `lib`, `templates`, `l10n`, built `js`/`css` (incl. `.license` files, without source maps), `LICENSE`, `CHANGELOG.md` (the app store reads release notes from the package; `README.md` is not shipped — nothing reads it at runtime) — reproducibly (sorted, fixed owner, commit mtime). **No `vendor/`:** Nextcloud never loads it (`OC_App::registerAutoloading()` only loads `composer/autoload.php` and otherwise maps the app namespace to `lib/` itself) and the app has no PHP runtime dependencies; the local `vendor/` only holds dev tools. Verified by installing the tarball into a fresh NC34 container (no bind mount) and running the full e2e suite against it.
+
+## Dependency updates
+
+Renovate (`renovate.json`; the Renovate GitHub app is installed on the repository) opens pull requests only, no issues: every Monday morning one PR with all minor/patch updates, one PR per major update and one for lock-file maintenance; security fixes right away. New releases must be 4 days old first. Closing a major-update PR without merging makes Renovate skip that major.
+
+**Version limits that come from Nextcloud, not from the packages themselves, are explicit rules in `renovate.json`** (each with a `description`), because Renovate can't see them:
+- `nextcloud/ocp` stays at the `min-version` major; the `nextcloud` Docker images are the test matrix and change only deliberately.
+- `vite` stays below 8: `@nextcloud/vite-config` 2.x only accepts vite 7 as a peer dependency, so the vite 8 PR failed with `ERESOLVE` before the lock file could even be written. vite 8 needs `@nextcloud/vite-config` 3 (beta as of October 2026). Majors of both are grouped into one "vite" PR: when it shows up for `@nextcloud/vite-config` 3 and fails, raise `allowedVersions` for vite in that same PR.
+- Use the same pattern (`allowedVersions` plus a group) whenever a Nextcloud package doesn't support a new major of something yet.
