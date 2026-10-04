@@ -33,9 +33,9 @@ mkdir -p "$STAGING/js" "$STAGING/css"
 cp js/*.mjs js/*.license "$STAGING/js/"
 cp css/*.css "$STAGING/css/"
 
-# Reproducible: sorted entries, fixed owner, file mtimes from the last commit.
+# Reproducible: sorted entries, fixed owner and modes, mtimes from the last commit.
 MTIME=$(git log -1 --format=%cI 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
-tar --sort=name --owner=0 --group=0 --numeric-owner --mtime="$MTIME" \
+tar --sort=name --owner=0 --group=0 --numeric-owner --mode=u=rwX,go=rX --mtime="$MTIME" \
 	-czf "$ARTIFACT" -C build/staging "$APP_ID"
 
 echo "$ARTIFACT"
