@@ -48,8 +48,9 @@ requests) keep Nextcloud's own upload page.
 
 Download `public_share_control-<version>.tar.gz` from the
 [releases page](https://github.com/nicostoe/public_share_control/releases),
-extract it into your apps directory (`apps/` or your custom apps path), then
-enable it:
+extract it into your apps directory (`apps/` or your custom apps path), make
+it belong to the user your web server runs as, then enable it on the
+**Apps** page or with `occ`:
 
 ```bash
 tar -xzf public_share_control-<version>.tar.gz -C /path/to/nextcloud/apps/
@@ -57,9 +58,14 @@ chown -R www-data:www-data /path/to/nextcloud/apps/public_share_control
 sudo -u www-data php /path/to/nextcloud/occ app:enable public_share_control
 ```
 
+The commands in this README use `www-data`, the web server user on
+Debian and Ubuntu. Other systems use another one, e.g. `apache` (Fedora,
+RHEL), `http` (Arch) or `wwwrun` (openSUSE); in Docker, run `occ` with
+`docker exec -u www-data <container> php occ …`.
+
 To **update**, replace the `public_share_control` folder with the new one
-the same way, then run `sudo -u www-data php occ upgrade` (or open the admin
-page, which offers the update).
+the same way, then run `occ upgrade` (or open the admin page, which offers
+the update).
 
 No build step needed — the package ships pre-built JS/CSS.
 
