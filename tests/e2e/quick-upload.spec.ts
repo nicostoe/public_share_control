@@ -7,7 +7,7 @@ import type { Page } from '@playwright/test'
 import type { TestShare } from './helpers.ts'
 
 import { expect, test } from '@playwright/test'
-import { dav, testShare } from './helpers.ts'
+import { dav, testShare, updateShare } from './helpers.ts'
 
 let share: TestShare
 
@@ -85,5 +85,18 @@ for (const [choice, expected] of [
 		if (!('conflict (1).txt' in expected)) {
 			expect((await dav(baseURL!, `${share.folder}/conflict (1).txt`)).status).toBe(404)
 		}
+	})
+}
+
+for (const [variant, attributes] of [
+	['created via "New", which asks for the visitor\'s name', [{ scope: 'fileRequest', key: 'enabled', value: true }]],
+	['set in the share menu', []],
+] as const) {
+	test(`upload-only links keep only Nextcloud's own upload button: file request ${variant}`, async ({ page, baseURL }) => {
+		const request = await testShare(baseURL!, 'PSC-E2E-FileRequest')
+		await updateShare(baseURL!, request, { permissions: '4', attributes: JSON.stringify(attributes) })
+		await page.goto(`/index.php/s/${request.token}`)
+		await page.getByRole('button', { name: 'Upload', exact: true }).waitFor()
+		await expect(page.locator('[data-cy-files-list-action="public_share_control-quick-upload"]')).toHaveCount(0)
 	})
 }

@@ -14,7 +14,7 @@
 			@update:modelValue="setQuickUploadEnabled">
 			{{ t('public_share_control', 'Show an "Upload files" button on public share pages') }}
 			<template #description>
-				{{ t('public_share_control', 'Gives visitors one-click uploads next to "Public share". Only shown on links that allow uploads.') }}
+				{{ t('public_share_control', 'Gives visitors one-click uploads next to "Public share". Only shown on links that allow uploads, not on file requests.') }}
 			</template>
 		</NcCheckboxRadioSwitch>
 

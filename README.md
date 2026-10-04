@@ -36,7 +36,8 @@ and restrictions — see [Admin settings](#admin-settings) below.
 **2. Quick-upload button.** Every public folder share with upload
 permission gets an "Upload files" button right next to "Public share" in
 the toolbar, so visitors don't need to open the "New" menu just to upload a
-file. Shown at every screen width, phone to desktop.
+file. Shown at every screen width, phone to desktop. Upload-only links (file
+requests) keep Nextcloud's own upload page.
 
 ## Requirements
 
@@ -102,8 +103,8 @@ What stays behind has no effect:
    always hidden and can't be re-enabled per link). "Upload from device" is
    unaffected.
 4. The "Upload files" button next to "Public share" needs no setup — it
-   appears automatically on every folder share that allows uploads, unless
-   an admin turned it off instance-wide.
+   appears automatically on every folder share that allows uploads (except
+   upload-only file requests), unless an admin turned it off instance-wide.
 
 ## Admin settings
 

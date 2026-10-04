@@ -13,7 +13,7 @@ Public Share Control gives share owners and administrators more control over wha
 
 **Restrict the "New" menu per link.** In a link's sharing settings, the owner chooses which entries of the "New" menu visitors see — for example, allow uploads but hide "New folder", text documents, spreadsheets, whiteboards or "Add folder description". Uploading itself always stays available.
 
-**One-click uploads for visitors.** Links that allow uploads get an "Upload files" button right next to "Public share", on every screen size. Name conflicts are handled with Nextcloud's own dialog (Cancel, Keep both, Replace).
+**One-click uploads for visitors.** Links that allow uploads get an "Upload files" button right next to "Public share", on every screen size. Name conflicts are handled with Nextcloud's own dialog (Cancel, Keep both, Replace). File requests keep Nextcloud's own upload page.
 
 **Defaults and restrictions for administrators** (Administration settings → Sharing):
 

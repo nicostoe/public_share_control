@@ -17,7 +17,8 @@ First public release, for Nextcloud 34 and 35.
   visitors in any language. Uploading always stays available.
 - An "Upload files" button for visitors, right next to "Public share", on
   every screen size. Existing files are handled with Nextcloud's own
-  conflict dialog.
+  conflict dialog. Upload-only links (file requests) keep Nextcloud's own
+  upload page.
 - Admin settings (Administration settings → Sharing): entries hidden by
   default on new and untouched links, entries forbidden on all links, and a
   switch for the "Upload files" button. The page lists every "New" menu

@@ -13,6 +13,7 @@ use OCA\Files_Sharing\Event\BeforeTemplateRenderedEvent;
 use OCA\PublicShareControl\AppInfo\Application;
 use OCA\PublicShareControl\Service\AdminConfig;
 use OCP\AppFramework\Services\IInitialState;
+use OCP\Constants;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\Util;
@@ -65,7 +66,12 @@ final class BeforeTemplateRenderedListener implements IEventListener {
 
 		$this->initialState->provideInitialState(Application::CONFIG_DEFAULT_HIDDEN_KEY, $this->adminConfig->getDefaultHiddenEntries());
 		$this->initialState->provideInitialState(Application::CONFIG_FORBIDDEN_KEY, $this->adminConfig->getForbiddenEntries());
-		$this->initialState->provideInitialState(Application::CONFIG_QUICK_UPLOAD_ENABLED_KEY, $this->adminConfig->isQuickUploadEnabled());
+		// Upload-only links (file requests) have Nextcloud's own upload page.
+		// File requests created via "New" also need the visitor's name for
+		// every upload, which only that page asks for.
+		$uploadOnly = ($share->getPermissions() & Constants::PERMISSION_READ) === 0;
+		$isFileRequest = $attributes?->getAttribute('fileRequest', 'enabled') === true;
+		$this->initialState->provideInitialState(Application::CONFIG_QUICK_UPLOAD_ENABLED_KEY, $this->adminConfig->isQuickUploadEnabled() && !$uploadOnly && !$isFileRequest);
 
 		Util::addScript(Application::APP_ID, 'public_share_control-public');
 		Util::addStyle(Application::APP_ID, 'public_share_control-public');
