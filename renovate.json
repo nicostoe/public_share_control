@@ -1,0 +1,49 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": [
+		"config:recommended",
+		"group:allNonMajor",
+		":approveMajorUpdates"
+	],
+	"timezone": "Europe/Berlin",
+	"schedule": [
+		"* 0-5 * * 1"
+	],
+	"labels": [
+		"dependencies"
+	],
+	"rangeStrategy": "bump",
+	"minimumReleaseAge": "4 days",
+	"internalChecksFilter": "strict",
+	"osvVulnerabilityAlerts": true,
+	"ignoreDeps": [
+		"node",
+		"npm",
+		"php"
+	],
+	"lockFileMaintenance": {
+		"enabled": true
+	},
+	"packageRules": [
+		{
+			"description": "nextcloud/ocp has to match the minimum supported Nextcloud version (min-version in appinfo/info.xml).",
+			"matchPackageNames": [
+				"nextcloud/ocp"
+			],
+			"matchUpdateTypes": [
+				"major"
+			],
+			"enabled": false
+		},
+		{
+			"description": "The test instances are the supported version matrix; a new Nextcloud version is added deliberately (dev/compose.yaml, playwright.config.ts, max-version).",
+			"matchDatasources": [
+				"docker"
+			],
+			"matchPackageNames": [
+				"nextcloud"
+			],
+			"enabled": false
+		}
+	]
+}
