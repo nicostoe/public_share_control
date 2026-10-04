@@ -1,0 +1,80 @@
+# SPDX-FileCopyrightText: 2026 Nico Störzbach
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# All checks: on every push to main, on pull requests, and before every
+# release (release.yml calls this workflow).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, static analysis, unit tests, package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # psalm needs PHP >= 8.3.16; '8.3' resolves to the latest 8.3 release.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+          coverage: none
+
+      - run: npm ci
+      - run: composer install --no-interaction --no-progress
+
+      - name: Validate appinfo/info.xml against the app store schema
+        run: composer validate:info-xml
+
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: composer lint
+      - run: composer cs:check
+      - run: composer psalm
+      - run: npm run build
+      - run: scripts/package.sh
+
+  e2e:
+    name: End-to-end tests (Nextcloud 34 + 35)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # The repository is bind-mounted into both instances as the app.
+      - name: Start Nextcloud 34 and 35
+        run: |
+          docker compose -f dev/compose.yaml up -d
+          dev/setup.sh
+
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 14

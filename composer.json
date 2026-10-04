@@ -1,0 +1,37 @@
+{
+    "name": "nicostoe/public_share_control",
+    "description": "Control what visitors can create and simplify uploads on public share links",
+    "license": "AGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Nico Störzbach",
+            "email": "github@nstoerzbach.de"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "OCA\\PublicShareControl\\": "lib/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2"
+        }
+    },
+    "require": {
+        "php": "^8.2"
+    },
+    "scripts": {
+        "lint": "find . -name '*.php' -not -path './vendor/*' -not -path './node_modules/*' -print0 | xargs -0 -n1 php -l",
+        "cs:check": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "psalm": "psalm.phar --threads=1 --no-cache",
+        "validate:info-xml": "php scripts/validate-info-xml.php"
+    },
+    "require-dev": {
+        "nextcloud/coding-standard": "^1.5",
+        "nextcloud/ocp": "^34.0",
+        "psalm/phar": "^6.0"
+    }
+}

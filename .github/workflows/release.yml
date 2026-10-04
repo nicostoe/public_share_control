@@ -1,0 +1,77 @@
+# SPDX-FileCopyrightText: 2026 Nico Störzbach
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Pushing a tag vX.Y.Z publishes a GitHub release with the installable
+# package public_share_control-X.Y.Z.tar.gz attached — after every CI check
+# has passed. See "Releasing" in AGENTS.md.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Check version and changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tag, info.xml and package.json must agree
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          info=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' appinfo/info.xml)
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$info" ] || [ "$tag" != "$pkg" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME, appinfo/info.xml ($info) and package.json ($pkg) must have the same version"
+            exit 1
+          fi
+
+      - name: CHANGELOG.md must have a section for this version
+        run: scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > /dev/null
+
+  ci:
+    needs: version
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Publish release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Package
+        id: package
+        run: echo "path=$(scripts/package.sh | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the package as a workflow artifact too
+        uses: actions/upload-artifact@v7
+        with:
+          name: public_share_control-${{ github.ref_name }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" "${{ steps.package.outputs.path }}" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md"

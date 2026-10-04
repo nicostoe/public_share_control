@@ -1,0 +1,15 @@
+/node_modules
+/vendor
+/js
+/css
+/build
+/l10n/l10n.pot
+.php-cs-fixer.cache
+npm-debug.log
+/test-results
+/playwright-report
+
+# App signing keys live in ~/.nextcloud/certificates/, never in the
+# repository — this only catches one copied here by mistake.
+*.key
+*.pem
