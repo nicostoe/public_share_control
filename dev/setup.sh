@@ -13,8 +13,13 @@ setup_instance() {
 	local base="http://localhost:${port}"
 	echo "== ${container} (${base})"
 
-	printf 'waiting for install'
-	until docker exec -u www-data "$container" php occ status --output=json 2>/dev/null | grep -q '"installed":true'; do
+	printf 'waiting for Nextcloud'
+	local deadline=$((SECONDS + 600))
+	until [[ $(curl -sf "${base}/status.php" 2>/dev/null) == *'"installed":true'* ]]; do
+		if ((SECONDS >= deadline)); then
+			echo ' timed out after 10 minutes' >&2
+			return 1
+		fi
 		printf '.'
 		sleep 3
 	done
