@@ -23,7 +23,7 @@ Public Share Control gives share owners and administrators more control over wha
 
 Hiding menu entries changes what visitors see, not what the link permits: a link that allows uploads still lets visitors create files by other means, e.g. WebDAV.
     ]]></description>
-    <version>1.0.0</version>
+    <version>1.0.0-beta.1</version>
     <licence>agpl</licence>
     <author mail="github@nstoerzbach.de">Nico Störzbach</author>
     <namespace>PublicShareControl</namespace>
