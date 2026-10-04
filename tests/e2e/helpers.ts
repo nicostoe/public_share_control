@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import type { Browser, Page } from '@playwright/test'
+import type { Browser, Page, Request, Response } from '@playwright/test'
 
+import { expect } from '@playwright/test'
 import { spawnSync } from 'node:child_process'
 
 export const ADMIN_USER = 'admin'
@@ -47,19 +48,52 @@ export async function resetAppConfig(baseURL: string): Promise<void> {
 }
 
 /**
- * Let the app discover the "New" menu entries: forget the stored ones, open
- * the Files app as the logged-in admin and wait until the list is stored.
+ * Open the Files app and wait until the discovery has stored the registered
+ * "New" menu entries: at least one request sent, none still running.
+ *
+ * @param page a page logged in as the test admin
+ */
+export async function openFilesAndAwaitDiscovery(page: Page): Promise<void> {
+	let started = 0
+	let pending = 0
+	const isDiscovery = (request: Request) => request.url().endsWith('/apps/public_share_control/discovered-entries')
+	const onStart = (request: Request) => {
+		if (isDiscovery(request)) {
+			started++
+			pending++
+		}
+	}
+	const onEnd = (request: Request) => {
+		if (isDiscovery(request)) {
+			pending--
+		}
+	}
+	// The app doesn't read the response body, so 'requestfinished' never fires;
+	// a response means the server has stored the list.
+	const onResponse = (response: Response) => onEnd(response.request())
+	page.on('request', onStart)
+	page.on('response', onResponse)
+	page.on('requestfailed', onEnd)
+	try {
+		await page.goto('/index.php/apps/files/files')
+		await expect.poll(() => started > 0 && pending === 0).toBe(true)
+	} finally {
+		page.off('request', onStart)
+		page.off('response', onResponse)
+		page.off('requestfailed', onEnd)
+	}
+}
+
+/**
+ * Let the app discover the "New" menu entries afresh: forget the stored ones,
+ * then open the Files app as the logged-in admin.
  *
  * @param page a page logged in as the test admin
  * @param baseURL the instance's base URL
  */
 export async function discoverEntries(page: Page, baseURL: string): Promise<void> {
 	await appConfigRequest(baseURL, 'discovered-entries', { method: 'DELETE' })
-	const stored = page.waitForResponse((response) => response.url().endsWith('/apps/public_share_control/discovered-entries') && response.request().method() === 'POST')
-	await page.goto('/index.php/apps/files/files')
-	if (!(await stored).ok()) {
-		throw new Error('Storing the discovered entries failed')
-	}
+	await openFilesAndAwaitDiscovery(page)
 }
 
 /**

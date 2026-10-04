@@ -42,9 +42,9 @@ function sortById(entries: DiscoveredEntry[]): DiscoveredEntry[] {
  * @param entries the complete list
  * @param leaving whether the page is being left, so the request must survive it
  */
-function send(entries: DiscoveredEntry[], leaving: boolean): void {
+async function send(entries: DiscoveredEntry[], leaving: boolean): Promise<void> {
 	const body = JSON.stringify({ entries })
-	fetch(generateUrl('/apps/public_share_control/discovered-entries'), {
+	await fetch(generateUrl('/apps/public_share_control/discovered-entries'), {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', requesttoken: getRequestToken() ?? '' },
 		body,
@@ -60,7 +60,8 @@ function send(entries: DiscoveredEntry[], leaving: boolean): void {
  * Keep the stored list of "New" menu entries up to date while an admin uses
  * the Files app, for the admin page. Additions are sent right away, keeping
  * stored entries not registered yet, since apps may register late; entries
- * still missing when the page is left are removed then.
+ * still missing when the page is left are removed then. One request at a
+ * time, so they can't overtake each other.
  */
 export function discoverNewMenuEntries(): void {
 	if (!getCurrentUser()?.isAdmin) {
@@ -68,14 +69,30 @@ export function discoverNewMenuEntries(): void {
 	}
 	let stored = sortById(normalizeDiscoveredEntries(loadState('public_share_control', DISCOVERED_ENTRIES_KEY, [])))
 	let checkPending = false
+	let sending = false
+	let sendAgain = false
 
 	const update = (leaving: boolean) => {
 		const current = registeredEntries()
 		const next = leaving ? current : sortById([...current, ...stored.filter((entry) => !current.some((registered) => registered.id === entry.id))])
-		if (JSON.stringify(next) !== JSON.stringify(stored)) {
-			stored = next
-			send(next, leaving)
+		if (JSON.stringify(next) === JSON.stringify(stored)) {
+			return
 		}
+		if (sending) {
+			// Sent once the running request is done. When leaving, the removal
+			// waits for a later visit instead.
+			sendAgain ||= !leaving
+			return
+		}
+		stored = next
+		sending = true
+		send(next, leaving).finally(() => {
+			sending = false
+			if (sendAgain) {
+				sendAgain = false
+				update(false)
+			}
+		})
 	}
 	const scheduleUpdate = () => {
 		if (!checkPending) {

@@ -6,7 +6,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '@playwright/test'
-import { ADMIN_PASSWORD, ADMIN_USER, discoverEntries, login, postDiscoveredEntries, resetAppConfig } from './helpers.ts'
+import { ADMIN_PASSWORD, ADMIN_USER, discoverEntries, login, openFilesAndAwaitDiscovery, postDiscoveredEntries, resetAppConfig } from './helpers.ts'
 
 const ENDPOINT = '/index.php/apps/public_share_control/discovered-entries'
 const FAKE_ENTRY = { id: 'psc-e2e-fake', label: 'PSC E2E fake entry', category: 1, icon: '', order: 0 }
@@ -51,8 +51,7 @@ test('entries no longer registered are removed once the Files app is left', asyn
 	expect(await adminRows(page)).toContain(FAKE_ENTRY.label)
 
 	// Missing while the Files app is open, so it's removed when the page is left.
-	await page.goto('/index.php/apps/files/files')
-	await page.getByRole('button', { name: /^New$/ }).first().waitFor()
+	await openFilesAndAwaitDiscovery(page)
 	await expect.poll(async () => adminRows(page)).not.toContain(FAKE_ENTRY.label)
 	expect(await adminRows(page)).toContain('New folder')
 })

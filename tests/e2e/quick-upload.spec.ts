@@ -35,6 +35,9 @@ function row(page: Page, name: string) {
 }
 
 test.beforeEach(async ({ page, baseURL }) => {
+	// An empty folder each time: the file list only renders the rows in view,
+	// so uploads from earlier runs would push new files out of it.
+	await dav(baseURL!, 'PSC-E2E-Upload', { method: 'DELETE' })
 	share = await testShare(baseURL!, 'PSC-E2E-Upload')
 	await page.goto(`/index.php/s/${share.token}`)
 	await page.getByRole('button', { name: 'Upload files' }).waitFor()
