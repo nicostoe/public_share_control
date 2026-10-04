@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+/**
+ * SPDX-FileCopyrightText: 2026 Nico Störzbach
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 namespace OCA\PublicShareControl\AppInfo;
 
 use OCA\Files\Event\LoadSidebar;
@@ -17,21 +22,16 @@ final class Application extends App implements IBootstrap {
 	public const APP_ID = 'public_share_control';
 
 	/**
-	 * Share attribute scope/key holding the list of "Create new" menu entry
-	 * ids the owner unchecked for this link (JSON array of strings; empty or
-	 * absent = nothing hidden). Must match src/constants.ts.
+	 * Share attribute with the "New" menu entries hidden on this link. When
+	 * it's absent, the admin defaults apply. Must match src/constants.ts.
 	 */
 	public const ATTR_SCOPE = 'public_share_control';
 	public const ATTR_KEY = 'hidden-create-entries';
 
 	/**
-	 * IAppConfig keys for the instance-wide admin settings. Values for the
-	 * two entry-list keys are JSON arrays in the same shape as ATTR_KEY's
-	 * (see src/hiddenEntries.ts's HiddenEntryRef); the quick-upload key is a
-	 * plain 'yes'/'no' string (@nextcloud/password-confirmation's confirmed
-	 * convention, see apps/sharebymail's AdminSettings.vue in nextcloud/server
-	 * for the reference pattern this app's own admin settings follow). Must
-	 * match src/constants.ts.
+	 * App config keys of the admin settings: two JSON lists of entries, in the
+	 * same shape as the share attribute, and 'yes'/'no' for the quick-upload
+	 * button. Must match src/constants.ts.
 	 */
 	public const CONFIG_DEFAULT_HIDDEN_KEY = 'default-hidden-entries';
 	public const CONFIG_FORBIDDEN_KEY = 'forbidden-entries';

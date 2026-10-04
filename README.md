@@ -4,6 +4,20 @@ Give admins and share owners more control over public folder links: hide
 specific entries of the "New" menu per link, and give visitors a one-click
 upload button.
 
+## Contents
+
+- [What it does](#what-it-does)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Uninstalling](#uninstalling)
+- [Usage](#usage)
+- [Admin settings](#admin-settings)
+- [Good to know](#good-to-know)
+- [Building from source](#building-from-source)
+- [Releasing (maintainers)](#releasing-maintainers)
+- [Support](#support)
+- [License](#license)
+
 ## What it does
 
 **1. Per-link "New" menu control.** Every public folder share's sharing
@@ -70,17 +84,6 @@ What stays behind has no effect:
   sudo -u www-data php occ config:app:delete public_share_control quick-upload-enabled
   ```
 
-## Building from source
-
-```bash
-npm ci
-npm run build
-scripts/package.sh   # → build/artifacts/public_share_control-<version>.tar.gz
-```
-
-Requires Node 24 (see `engines` in `package.json`); `npm run lint` needs at
-least Node 22.14.
-
 ## Usage
 
 1. Share a folder as usual: **Share → Create link**, with permission
@@ -146,6 +149,48 @@ an owner or admin adds it.
 - Two core entries that can never apply to an anonymous visitor
   ("Create file request", "Create templates folder" — both tied to a
   logged-in account) are filtered out of the dropdown automatically.
+
+## Building from source
+
+```bash
+npm ci
+npm run build
+scripts/package.sh   # → build/artifacts/public_share_control-<version>.tar.gz
+```
+
+Requires Node 24 (see `engines` in `package.json`); `npm run lint` needs at
+least Node 22.14.
+
+## Releasing (maintainers)
+
+- **While developing:** commit and push as usual, and add every change users
+  will notice to `CHANGELOG.md` under `## [Unreleased]`. Pushes to `main` only
+  run CI — nothing is released.
+- **Pre-release**, to test a version on a real instance first:
+
+  ```bash
+  scripts/bump-version.sh 1.1.0-beta.1
+  git commit -am "Release 1.1.0-beta.1" && git push   # wait for CI to pass
+  git tag -a v1.1.0-beta.1 -m "Public Share Control 1.1.0-beta.1" && git push origin v1.1.0-beta.1
+  ```
+
+  Install the package from the pre-release on GitHub and test it. Another
+  round is `-beta.2`, `-rc.1`, …
+- **Final release:**
+
+  ```bash
+  scripts/bump-version.sh 1.1.0
+  git commit -am "Release 1.1.0" && git push           # wait for CI to pass
+  git tag -a v1.1.0 -m "Public Share Control 1.1.0" && git push origin v1.1.0
+  ```
+
+- Pushing the tag runs all checks, then publishes a GitHub release with the
+  package attached. **Its notes come from `CHANGELOG.md`**: the version's
+  section, or `## [Unreleased]` for a pre-release. The tag message is only
+  stored with the tag.
+
+Details, e.g. which versions `bump-version.sh` accepts: "Releasing" in
+`AGENTS.md`.
 
 ## Support
 

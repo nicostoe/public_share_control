@@ -36,7 +36,7 @@
 		<div :class="$style.rows">
 			<div v-for="row in rows" :key="row.key" :class="$style.row">
 				<span :class="$style.entryLabel">
-					<!-- Always rendered (an empty icon-sized box if an app ships no inline SVG) so labels stay aligned. -->
+					<!-- Always rendered, so labels stay aligned for entries without an icon. -->
 					<NcIconSvgWrapper :class="$style.entryIcon" :svg="row.iconSvgInline ?? ''" inline />
 					{{ row.label }}
 				</span>
@@ -90,24 +90,15 @@ const APP_ID = 'public_share_control'
 type TemplateCreator = { app: string, label: string, extension: string, iconSvgInline: string | null }
 
 /**
- * A single "Create new" entry as shown in this admin page's row list.
- *
- * `templateKey` is set for template-based entries (documents, spreadsheets,
- * diagrams, whiteboards, …) — the SAME `<app>:<extension>` key
- * src/hiddenEntries.ts's templateKeyFor() recomputes on the consuming side
- * (sidebar, public page) from a live registered entry's volatile id. It's
- * absent for "New folder", the one core "Create new" entry that both has no
- * PHP-side registry at all (must be hardcoded, see below) and needs none —
- * its id ('newFolder') is already stable, unlike template-based entries'.
+ * One row of the entry list. Template-based entries have a `templateKey`
+ * (`<app>:<extension>`, see hiddenEntries.ts) as their key; the fixed rows
+ * use their stable ids.
  */
 type EntryRow = { key: string, label: string, iconSvgInline: string | null, templateKey?: string }
 
 /**
- * Wrap an `@mdi/js` icon path as an inline SVG string. The hardcoded rows below
- * use the exact same Material Design icons the real "+ New" entries register
- * (verified by comparing the registered SVG paths on NC34 and NC35:
- * "New folder" → mdiFolderPlusOutline, Text's "Add folder description" →
- * mdiText), so the admin page always matches the menu.
+ * Inline SVG for an `@mdi/js` icon path. The fixed rows use the same icons as
+ * the real menu entries.
  *
  * @param path the icon's SVG path data
  */
@@ -116,23 +107,14 @@ function mdiSvg(path: string): string {
 }
 
 /**
- * The hardcoded "New folder" pseudo-row. Nextcloud core enumerates
- * "Create new" entries server-side ONLY for template-based ones, via
- * ITemplateManager::listCreators() (see Settings/Admin.php) — "New folder"
- * is registered purely client-side (apps/files/src/newMenu/newFolder.ts in
- * nextcloud/server, id `newFolder`, confirmed stable) with no PHP-side
- * registry at all. Any third-party app that likewise registers its own
- * "Create new" entry directly (bypassing the template mechanism) is not
- * enumerable here either — a real, known limitation, not silently glossed
- * over (see the hint text in the template above).
+ * "New folder" exists only client-side, so it isn't in the server's list (see
+ * Settings/Admin.php) and is a fixed row. Entries other apps add the same way
+ * can't be listed at all, as the page says.
  */
 const NEW_FOLDER_ROW: EntryRow = { key: 'newFolder', label: t('public_share_control', 'New folder'), iconSvgInline: mdiSvg(mdiFolderPlusOutline) }
 
 /**
- * The Text app's "Add folder description" entry (creates a Readme.md shown
- * above the file list). Like "New folder" it's registered purely client-side
- * (id `rich-workspace-init`, category "Other", confirmed on NC34 and NC35),
- * so it can't be enumerated server-side and is hardcoded — shown only when
+ * The Text app's "Add folder description", also client-side only. Shown when
  * the Text app is enabled.
  */
 const FOLDER_DESCRIPTION_ROW: EntryRow = { key: 'rich-workspace-init', label: t('public_share_control', 'Add folder description'), iconSvgInline: mdiSvg(mdiText) }
@@ -159,10 +141,8 @@ export default defineComponent({
 
 		const defaultHidden = normalizeHiddenEntries(loadState(APP_ID, DEFAULT_HIDDEN_ENTRIES_KEY, []))
 		const forbidden = normalizeHiddenEntries(loadState(APP_ID, FORBIDDEN_ENTRIES_KEY, []))
-		// Keyed on the SAME row.key used everywhere else here (templateKey
-		// for template rows, plain id for "New folder") — admin-authored refs
-		// always set templateKey === id for template rows (see toRefs()), so
-		// `ref.templateKey ?? ref.id` recovers row.key either way.
+		// Stored refs map back to row keys: template rows are stored with
+		// id === templateKey (see toRefs()).
 		const defaultHiddenKeys = new Set(defaultHidden.map((ref) => ref.templateKey ?? ref.id))
 		const forbiddenKeys = new Set(forbidden.map((ref) => ref.templateKey ?? ref.id))
 		const quickUploadEnabled = loadState<boolean>(APP_ID, QUICK_UPLOAD_ENABLED_KEY, true)
@@ -171,13 +151,11 @@ export default defineComponent({
 			rows,
 			defaultHiddenKeys,
 			forbiddenKeys,
-			// Last state the server confirmed — what the switches fall back to
-			// if a save fails or the password confirmation is cancelled.
+			// Last state the server confirmed, restored when a save fails.
 			savedDefaultHiddenKeys: new Set(defaultHiddenKeys),
 			savedForbiddenKeys: new Set(forbiddenKeys),
-			// Configured entries without a row on this page (e.g. from an app
-			// that's currently disabled) — kept as-is on save instead of being
-			// silently dropped.
+			// Configured entries without a row here (e.g. from a disabled app),
+			// kept unchanged on save.
 			storedRefs: new Map([...defaultHidden, ...forbidden].map((ref) => [ref.templateKey ?? ref.id, ref])),
 			entriesSaving: false,
 			entriesDirty: false,
@@ -199,9 +177,7 @@ export default defineComponent({
 
 		setDefaultHidden(key: string, hidden: boolean) {
 			if (this.forbiddenKeys.has(key)) {
-				// Locked: a forbidden entry is always default-hidden too, see
-				// setForbidden() below — this is defense in depth alongside the
-				// template's :disabled binding, not the primary guard.
+				// A forbidden entry stays hidden by default, see setForbidden().
 				return
 			}
 			const next = new Set(this.defaultHiddenKeys)
@@ -218,11 +194,8 @@ export default defineComponent({
 			const nextForbidden = new Set(this.forbiddenKeys)
 			if (forbidden) {
 				nextForbidden.add(key)
-				// Forbidding an entry makes a separate "hidden by default" state
-				// for it meaningless (forbidding already hides it unconditionally
-				// — see the merge model in hiddenEntries.ts's consumers), so force
-				// it on here too, purely so the UI doesn't show a confusing
-				// contradictory-looking pair of switches.
+				// Hidden anyway; switching "Hidden by default" on too keeps the
+				// two switches from contradicting each other.
 				const nextDefault = new Set(this.defaultHiddenKeys)
 				nextDefault.add(key)
 				this.defaultHiddenKeys = nextDefault
@@ -234,15 +207,10 @@ export default defineComponent({
 		},
 
 		/**
-		 * Persist both entry lists. Saves start immediately and never run
-		 * concurrently: both lists are array-valued keys shared by every row,
-		 * so overlapping requests could land out of order and revert a newer
-		 * change. A change made while a save is running marks the state dirty,
-		 * and the loop then saves the newest state once more.
-		 *
-		 * If a save fails — or the admin cancels the password confirmation —
-		 * the switches return to what the server last confirmed, so the page
-		 * never shows a state that isn't actually stored.
+		 * Save both entry lists. Saves never overlap, since requests landing out
+		 * of order could revert a newer change: a change during a save is saved
+		 * by one more round. If a save fails or the password confirmation is
+		 * cancelled, the switches return to the last confirmed state.
 		 */
 		async saveEntries() {
 			if (this.entriesSaving) {
@@ -307,8 +275,7 @@ export default defineComponent({
 		},
 
 		/**
-		 * Store one app config value through Nextcloud's generic app config
-		 * endpoint (the same one core's own sharebymail admin settings use).
+		 * Store an app config value through the provisioning API.
 		 *
 		 * @param key the app config key
 		 * @param value the string value to store
@@ -325,7 +292,7 @@ export default defineComponent({
 	margin-block: calc(var(--default-grid-baseline) * 6) calc(var(--default-grid-baseline) * 2);
 }
 
-// Short legend for the two per-entry switches, instead of one long paragraph.
+// Legend for the two switches per entry.
 .legend {
 	display: flex;
 	flex-direction: column;

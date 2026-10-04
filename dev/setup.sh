@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Nico Störzbach
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
 # Prepare the local test instances from dev/compose.yaml: wait for the
 # Nextcloud install to finish, enable the app, and create a test folder with
 # a public link (upload + editing allowed). Safe to run repeatedly.
@@ -25,6 +28,9 @@ setup_instance() {
 	done
 	echo ' done'
 
+	# The repository is the app: after a version bump in info.xml, Nextcloud
+	# answers 503 until the upgrade has run. A no-op otherwise.
+	docker exec -u www-data "$container" php occ upgrade > /dev/null
 	docker exec -u www-data "$container" php occ app:enable public_share_control
 	# The first-run "Welcome" dialog overlays the Files app and blocks browser tests.
 	docker exec -u www-data "$container" php occ app:disable firstrunwizard >/dev/null 2>&1 || true

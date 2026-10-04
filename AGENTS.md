@@ -100,6 +100,8 @@ dev/setup.sh                               # waits for install, enables the app,
 
 Admin login on both: `admin` / `Admin1234!` — public in this repository, which is why both instances listen on `127.0.0.1` only. The repo is bind-mounted read-only as `custom_apps/public_share_control`, so `npm run build` takes effect on the next page load — no copying. `occ`: `docker exec -u www-data pscontrol-nc34 php occ …`. Tear down with `docker compose -f dev/compose.yaml down -v` (`-v` also deletes the instances' data).
 
+After a version bump in `info.xml` (every release and pre-release), Nextcloud answers 503 on the instances until `occ upgrade` has run; `dev/setup.sh` and the e2e global setup run it.
+
 `dev/setup.sh` also disables `firstrunwizard` — on NC35 its "Welcome" dialog overlays the Files app and blocks clicks (Escape doesn't close it).
 
 **`occ config:app:set` does not reach the web server right away** on these instances: app config is cached in APCu, which the CLI doesn't share, so the web server keeps serving the old value until its cache expires. Change app config through the web server instead — the provisioning API endpoint the admin page uses (`POST/DELETE /ocs/v2.php/apps/provisioning_api/api/v1/config/apps/public_share_control/<key>` with admin Basic auth); the e2e helpers do exactly that.
@@ -118,11 +120,15 @@ Raise `max-version` in `info.xml` only after adding a project for the new versio
 
 ## Releasing
 
+Changes go under `## [Unreleased]` in `CHANGELOG.md` as they are made. A release is a pushed tag `vX.Y.Z`; commits to `main` without a tag only run CI.
+
 ```bash
-scripts/bump-version.sh 1.0.0      # sets info.xml, package.json(+lock), turns "## [Unreleased]" into "## [1.0.0]"
-git commit -am "Release 1.0.0" && git push   # wait for CI to be green
-git tag v1.0.0 && git push origin v1.0.0
+scripts/bump-version.sh 1.2.0      # info.xml, package.json(+lock); "## [Unreleased]" → "## [1.2.0]" plus a new empty "## [Unreleased]" above
+git commit -am "Release 1.2.0" && git push   # wait for CI to be green
+git tag -a v1.2.0 -m "Public Share Control 1.2.0" && git push origin v1.2.0
 ```
+
+**Pre-releases** for testing before a final release: `scripts/bump-version.sh 1.2.0-beta.1` (`alpha`, `beta` or `rc`, numbered), then commit, push and tag `v1.2.0-beta.1` the same way. The CHANGELOG stays untouched — a pre-release's notes are the current `## [Unreleased]` section, which is also where the app store reads them from — and the GitHub release is marked "Pre-release". Further pre-releases (`-beta.2`, `-rc.1`) and finally `1.2.0` follow the same way. `bump-version.sh` refuses any version that isn't newer than every existing `v*` tag, compared with PHP's `version_compare()` like Nextcloud does (`1.2.0-beta.1` < `1.2.0-rc.1` < `1.2.0`) — so a broken pre-release is fixed with the next one, never by going back.
 
 The tag triggers `.github/workflows/release.yml`: it refuses tags whose version differs from `info.xml`/`package.json` or that have no CHANGELOG section, runs the complete CI (`ci.yml`, incl. e2e on NC34+35) and then publishes a GitHub release with `public_share_control-<version>.tar.gz` attached (also kept as a workflow artifact); the release notes are that version's CHANGELOG section (`scripts/release-notes.sh`).
 
@@ -136,3 +142,11 @@ Renovate (`renovate.json`; the Renovate GitHub app is installed on the repositor
 - `nextcloud/ocp` stays at the `min-version` major; the `nextcloud` Docker images are the test matrix and change only deliberately.
 - `vite` stays below 8: `@nextcloud/vite-config` 2.x only accepts vite 7 as a peer dependency, so the vite 8 PR failed with `ERESOLVE` before the lock file could even be written. vite 8 needs `@nextcloud/vite-config` 3 (beta as of October 2026). Majors of both are grouped into one "vite" PR: when it shows up for `@nextcloud/vite-config` 3 and fails, raise `allowedVersions` for vite in that same PR.
 - Use the same pattern (`allowedVersions` plus a group) whenever a Nextcloud package doesn't support a new major of something yet.
+
+## AI assistance
+
+This project follows Nextcloud's [AI Contribution Policy](https://github.com/nextcloud/.github/blob/master/AI_POLICY.md). It is binding for contributions to repositories in the Nextcloud GitHub organization, such as the app certificate request, and applied here voluntarily:
+- Every commit with AI-assisted content ends with the trailer `Assisted-by: AGENT_NAME:MODEL_VERSION`, e.g. `Assisted-by: ClaudeCode:claude-opus-5-5`. Agents never add `Signed-off-by`.
+- Issues, PR descriptions and review comments, here and in Nextcloud's repositories, are written by the maintainer in their own words. Agents don't open issues or PRs.
+- Code comments describe the code (behavior, constraints the code can't express), never its history or how it came about; that belongs in commit messages, the CHANGELOG or this file. Keep them brief.
+- The maintainer reviews every change and must be able to explain it, especially dependencies, access control and anything security-related, and tests new features on a live instance in every context they reach (signed-in Files app, public links, password-protected links).

@@ -35,9 +35,8 @@ function pickFiles(): Promise<File[]> {
 
 /**
  * Ask the visitor how to handle files whose name already exists in the target
- * folder, using Nextcloud's own conflict dialog — the same one core's upload
- * menu shows. Without this, batchUpload() would silently overwrite the
- * owner's existing files.
+ * folder, with Nextcloud's own conflict dialog. Without a callback,
+ * batchUpload() overwrites existing files.
  *
  * Returns batchUpload()'s callback contract: a map of incoming name → name to
  * upload under (same name = overwrite, other name = upload renamed, missing =
@@ -97,11 +96,8 @@ function waitForUpload(upload: IUpload): Promise<IUpload> {
 }
 
 /**
- * `batchUpload()` resolves without usable Nodes, and the Files app's list only
- * refreshes reactively on a `files:node:created` event. So stat every uploaded
- * file and emit that event ourselves — the same sequence core's own
- * TemplatePicker.vue uses for anonymous public-share uploads. Without this the
- * upload succeeds but stays invisible until a manual reload.
+ * Add the uploaded files to the file list, which only updates on a
+ * `files:node:created` event; batchUpload() provides no nodes for that.
  *
  * @param folderPath the folder the files were uploaded into
  * @param names the final names the files were uploaded under
@@ -122,10 +118,8 @@ async function announceUploadedNodes(folderPath: string, names: string[]): Promi
 }
 
 /**
- * Registers the "Upload files" button in the public share page's toolbar row
- * (next to "Public share ▾"). registerFileListAction() renders into that row
- * with its label always visible, at every screen width — no responsive logic
- * needed on our side.
+ * Register the "Upload files" button. File list actions appear in the toolbar
+ * row next to "Public share", with their label visible at every width.
  */
 export function registerQuickUploadAction(): void {
 	registerFileListAction({

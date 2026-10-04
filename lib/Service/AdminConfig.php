@@ -2,21 +2,19 @@
 
 declare(strict_types=1);
 
+/**
+ * SPDX-FileCopyrightText: 2026 Nico Störzbach
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 namespace OCA\PublicShareControl\Service;
 
 use OCA\PublicShareControl\AppInfo\Application;
 use OCP\IAppConfig;
 
 /**
- * Reads the instance-wide admin settings (set via the "Sharing" admin
- * settings panel, Settings\Admin::getForm()). Centralized here so the three
- * PHP call sites that need these values (the owner sidebar listener, the
- * public page listener, and the admin settings panel itself, to prefill its
- * form) don't each re-implement the same read/parse/filter logic.
- *
- * Values are written through the generic provisioning_api config endpoint
- * (see AdminSettings.vue), not through this service — there is deliberately
- * no setter here.
+ * Reads the admin settings. They are written by the admin page through the
+ * provisioning API's app config endpoint, so there is no setter.
  */
 final class AdminConfig {
 	public function __construct(
@@ -25,11 +23,7 @@ final class AdminConfig {
 	}
 
 	/**
-	 * "Create new" entries the admin chose to hide by default for any share
-	 * whose owner hasn't made their own explicit per-share choice yet (see
-	 * HideCreateNewEntry.vue's computeHiddenIds()). Each item is the same
-	 * shape as a per-share hidden-entry reference — {id} or {id,
-	 * templateKey} — interpreted by the frontend's normalizeHiddenEntries().
+	 * Entries hidden on links whose owner hasn't changed the selection.
 	 *
 	 * @return list<array{id: string, templateKey?: string}>
 	 */
@@ -38,9 +32,7 @@ final class AdminConfig {
 	}
 
 	/**
-	 * "Create new" entries the admin forbade entirely — always hidden on
-	 * every public page, and shown as disabled (unselectable) checkboxes in
-	 * the owner sidebar, regardless of any per-share choice.
+	 * Entries hidden on every link, whatever its owner chose.
 	 *
 	 * @return list<array{id: string, templateKey?: string}>
 	 */
@@ -49,9 +41,7 @@ final class AdminConfig {
 	}
 
 	/**
-	 * Whether the app's "Upload files" quick-upload button should appear on
-	 * public share pages at all. Defaults to enabled, matching this app's
-	 * behavior before this setting existed.
+	 * Whether public share pages show the "Upload files" button (default: yes).
 	 */
 	public function isQuickUploadEnabled(): bool {
 		return $this->appConfig->getValueBool(Application::APP_ID, Application::CONFIG_QUICK_UPLOAD_ENABLED_KEY, true);
@@ -67,9 +57,8 @@ final class AdminConfig {
 			return [];
 		}
 
-		// Admin-editable data via the generic provisioning_api endpoint, not
-		// guaranteed well-formed: keep only well-formed references, and only
-		// the fields the frontend uses.
+		// Writable by any admin through the API: keep only well-formed entries
+		// and only the fields the frontend uses.
 		$entries = [];
 		foreach ($decoded as $entry) {
 			if (!is_array($entry) || !isset($entry['id']) || !is_string($entry['id'])) {

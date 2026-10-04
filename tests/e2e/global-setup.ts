@@ -8,15 +8,18 @@ import type { FullConfig } from '@playwright/test'
 import { occ, resetAppConfig } from './helpers.ts'
 
 /**
- * Bring every test instance into the state the tests expect: app enabled,
- * English UI (tests use English labels), no first-run dialog covering the
- * Files app, and no admin settings left over from an earlier run.
+ * Bring every test instance into the state the tests expect: app upgraded
+ * and enabled, English UI (tests use English labels), no first-run dialog
+ * covering the Files app, and no admin settings left over from an earlier run.
  *
  * @param config the Playwright config
  */
 export default async function globalSetup(config: FullConfig): Promise<void> {
 	for (const project of config.projects) {
 		const container = project.metadata.container as string
+		// The repository is the app: after a version bump in info.xml, Nextcloud
+		// answers 503 until the upgrade has run. A no-op otherwise.
+		occ(container, 'upgrade')
 		occ(container, 'app:enable', 'public_share_control')
 		occ(container, 'app:disable', 'firstrunwizard')
 		occ(container, 'user:setting', 'admin', 'core', 'lang', 'en')

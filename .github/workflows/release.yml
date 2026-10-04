@@ -3,7 +3,8 @@
 #
 # Pushing a tag vX.Y.Z publishes a GitHub release with the installable
 # package public_share_control-X.Y.Z.tar.gz attached — after every CI check
-# has passed. See "Releasing" in AGENTS.md.
+# has passed. A tag like vX.Y.Z-beta.1 publishes a pre-release the same way.
+# See "Releasing" in AGENTS.md.
 
 name: Release
 
@@ -71,7 +72,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
+          # v1.2.0-beta.1 and the like are marked as pre-releases (never "Latest").
+          prerelease=()
+          if [[ $GITHUB_REF_NAME == *-* ]]; then
+            prerelease=(--prerelease)
+          fi
           gh release create "$GITHUB_REF_NAME" "${{ steps.package.outputs.path }}" \
             --verify-tag \
             --title "$GITHUB_REF_NAME" \
-            --notes-file "$RUNNER_TEMP/notes.md"
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            "${prerelease[@]}"

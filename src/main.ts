@@ -22,14 +22,12 @@ const sharingAction: ISidebarAction = {
 	order: 30,
 
 	enabled(share: IShare, node: INode) {
-		// Only public links (and email shares, which are link shares under the
-		// hood) have a public page with an upload "+" menu to restrict.
+		// Only link shares (mail shares are link shares too) have a public page.
 		if (!(share as ILinkShare).token) {
 			return false
 		}
 
-		// "Create new" only makes sense for folder shares. File shares never
-		// show that menu in the first place.
+		// Only folder shares have a "New" menu.
 		return node.type === FileType.Folder
 	},
 }

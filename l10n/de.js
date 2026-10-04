@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Nico Störzbach
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 OC.L10N.register(
     "public_share_control",
     {

@@ -25,9 +25,8 @@
 						{{ allSelected ? t('public_share_control', 'Deselect all') : t('public_share_control', 'Select all') }}
 					</NcButton>
 					<hr :class="$style.divider">
-					<!-- The tooltip sits on a wrapper: NcCheckboxRadioSwitch passes
-					     `title` on to its hidden, disabled <input>, which never
-					     receives the pointer, so no tooltip would ever show. -->
+					<!-- Tooltip on a wrapper: NcCheckboxRadioSwitch passes `title` on to
+					     its hidden input, which never gets the pointer. -->
 					<div
 						v-for="entry in entries"
 						:key="entry.id"
@@ -36,10 +35,7 @@
 							:modelValue="!hiddenIds.has(entry.id)"
 							:disabled="forbiddenIds.has(entry.id)"
 							@update:modelValue="(checked) => setEntryVisible(entry.id, checked)">
-							<!-- Deliberately NOT using the component's #icon slot: it
-							     replaces the checkbox's own checked/unchecked glyph
-							     instead of adding alongside it, so the entry's icon
-							     goes in the default (label) slot next to the name. -->
+							<!-- Not the #icon slot: it replaces the checkbox glyph. -->
 							<span :class="$style.entryLabel">
 								<NcIconSvgWrapper :class="$style.entryIcon" :svg="entry.iconSvgInline" inline />
 								{{ entry.displayName }}
@@ -74,32 +70,16 @@ type ShareLike = { id: string, attributes: ShareAttribute[] }
 type NewMenuEntryLike = { id: string, displayName: string, iconSvgInline: string, order?: number }
 
 /**
- * Core "Create new" entries confirmed (via nextcloud/server source) to never
- * apply to an anonymous public-share visitor, so listing them here would
- * just be noise with no visible effect either way:
- * - "file-request" (apps/files_sharing/src/files_newMenu/newFileRequest.ts):
- *   its own `enabled()` explicitly returns false whenever `isPublicShare()`
- *   is true, and it's only registered by the authenticated-only
- *   files_sharing/init.ts — never by the public page's init-public.ts.
- * - "template-picker" (apps/files/src/newMenu/newTemplatesFolder.ts): its
- *   `enabled()` requires `context.owner === getCurrentUser()?.uid`, which
- *   can never hold for an anonymous visitor (no current user at all).
- * If a future core version renames these ids, the entries simply reappear
- * in the picker — harmless, not a crash.
+ * Core entries that never show for visitors: "file-request" is disabled on
+ * public pages, "template-picker" needs a signed-in owner.
  */
 const NEVER_PUBLIC_ENTRY_IDS = new Set(['file-request', 'template-picker'])
 
-/**
- * The admin's instance-wide "hidden by default" and "forbidden" lists (see
- * lib/Settings/Admin.php), pushed unconditionally by LoadSidebarListener.php
- * regardless of which share is being edited — read once at module load,
- * same as every other loadState() call in this app.
- */
 const defaultHiddenEntries = normalizeHiddenEntries(loadState('public_share_control', DEFAULT_HIDDEN_ENTRIES_KEY, []))
 const forbiddenEntries = normalizeHiddenEntries(loadState('public_share_control', FORBIDDEN_ENTRIES_KEY, []))
 
 /**
- * This app's own entry in the share's generic attributes, if any.
+ * This app's attribute on the share, if any.
  *
  * @param share the share object as passed to this component
  */
@@ -108,19 +88,10 @@ function findOwnAttribute(share: ShareLike): ShareAttribute | undefined {
 }
 
 /**
- * Replace (or with `undefined`, remove) this app's entry in the share's
- * attributes — **in place**, on core's own share object.
- *
- * `share` is core's actual `Share` model instance (SidebarTabExternalAction
- * passes `toRaw(props.share)`; in core's Vue 2.7 that is the same object), and
- * its `attributes` getter returns the live array without offering a setter.
- * Core reads that array when it saves (SharesMixin.queueUpdate() sends
- * `JSON.stringify(this.share.attributes)`) and edits it in place itself (the
- * Share model's `hideDownload` setter). Writing our selection into that array
- * therefore makes core's own, single "Update share" request carry it — no
- * second request of our own, and no stale copy that a later save could use to
- * overwrite our value (both were real bugs of the earlier two-request design,
- * see AGENTS.md).
+ * Set (or with `undefined`, remove) this app's attribute, in place. `share` is
+ * core's own Share model: its `attributes` getter returns the live array that
+ * core's "Update share" request sends, and it has no setter, so the array is
+ * edited, never replaced.
  *
  * @param share the share object as passed to this component
  * @param entry the attribute entry to store, or undefined to remove it
@@ -140,10 +111,8 @@ function writeOwnAttribute(share: ShareLike, entry: ShareAttribute | undefined):
 }
 
 /**
- * Deep copy of an attribute entry, so a remembered baseline can't be changed
- * by later in-place edits. JSON round-trip rather than structuredClone(): the
- * input may be a Vue reactive proxy (which structuredClone() rejects), and
- * attribute values are JSON by definition.
+ * Deep copy of an attribute, so later in-place edits can't change it. JSON
+ * round-trip because structuredClone() rejects Vue proxies.
  *
  * @param entry the entry to copy
  */
@@ -152,26 +121,19 @@ function cloneAttribute(entry: ShareAttribute | undefined): ShareAttribute | und
 }
 
 /**
- * Every currently-registered "Create new" entry the admin forbade entirely,
- * by id — always hidden, and shown as a disabled (unselectable) checkbox,
- * regardless of any per-share choice. Entries+forbiddenEntries don't change
- * per share, so this only ever needs computing once (see data()).
+ * Ids of the entries the admin forbade.
  *
- * @param entries every currently-registered "Create new" entry
+ * @param entries the controllable entries
  */
 function computeForbiddenIds(entries: NewMenuEntryLike[]): Set<string> {
 	return new Set(entries.filter((entry) => matchesHiddenEntry(entry, forbiddenEntries, 'files')).map((entry) => entry.id))
 }
 
 /**
- * The effective hidden-entry id set for a given share: the admin's forbidden
- * list (unconditional) plus either the owner's own explicit choice for this
- * share, or — only when the owner has never made one (no attribute at all) —
- * the admin's default-hidden list. An explicit choice, even an empty one,
- * fully REPLACES the default rather than merging with it: an owner who
- * explicitly re-enabled every entry should see every entry.
+ * Ids of the entries hidden on this link: the forbidden ones plus the owner's
+ * selection or, if the owner never changed it, the admin defaults.
  *
- * @param entries every currently-registered "Create new" entry
+ * @param entries the controllable entries
  * @param share the share object as passed to this component
  */
 function computeHiddenIds(entries: NewMenuEntryLike[], share: ShareLike): Set<string> {
@@ -192,10 +154,8 @@ function sameIds(a: Set<string>, b: Set<string>): boolean {
 }
 
 /**
- * Every "Create new" entry currently registered on this page, in the same
- * order the real "+" menu would show them. Read once at module load: the
- * sidebar only mounts once the Files app (and therefore every app's own
- * menu-entry registration script) has already run.
+ * The controllable "New" menu entries, in menu order. All apps have registered
+ * theirs by the time the sidebar opens.
  */
 function listCreateNewEntries(): NewMenuEntryLike[] {
 	const registered = getNewFileMenuEntries()
@@ -226,8 +186,7 @@ export default defineComponent({
 			required: true,
 		},
 
-		// Always set by core's SidebarTabExternalAction wrapper, unused here
-		// but declared for a complete, self-documenting component contract.
+		// Passed by core, unused.
 		node: {
 			type: Object,
 			required: false,
@@ -252,9 +211,7 @@ export default defineComponent({
 			entries,
 			forbiddenIds: computeForbiddenIds(entries),
 			hiddenIds,
-			// Last saved state, to restore if the editor is closed without
-			// saving (see beforeUnmount) — mirroring how core's own cancel()
-			// restores the share fields it edits in place.
+			// Last saved state, restored if the editor closes without saving.
 			savedHiddenIds: new Set(hiddenIds),
 			savedAttribute: cloneAttribute(findOwnAttribute(this.share)),
 		}
@@ -267,37 +224,30 @@ export default defineComponent({
 				: t('public_share_control', 'All entries visible')
 		},
 
-		// Whether every entry the owner actually has any say over is visible
-		// — forbiddenIds is always a subset of hiddenIds (computeHiddenIds()
-		// always includes it), so equal sizes means nothing ELSE is hidden.
+		// Nothing hidden except the forbidden entries, which hiddenIds
+		// always contains.
 		allSelected(): boolean {
 			return this.hiddenIds.size === this.forbiddenIds.size
 		},
 	},
 
 	watch: {
-		// Keyed on share.id, NOT the whole share object: re-seed only when a
-		// genuinely different share is being edited, never because core
-		// mutated the current share object during its own save cycle. (Core
-		// closes the share editor — unmounting this component — before another
-		// share can be edited, so there are no unsaved edits to carry over.)
+		// Only share.id: core changes the share object itself while saving,
+		// which must not reset the selection.
 		'share.id': {
 			immediate: true,
 			handler() {
 				this.hiddenIds = computeHiddenIds(this.entries, this.share)
 				this.markSaved()
-				// Core calls this after its own "Update share" request (which
-				// already carried our attribute, see writeOwnAttribute()).
+				// Called by core after its "Update share" request.
 				this.onSave(async () => this.markSaved())
 			},
 		},
 	},
 
 	beforeUnmount() {
-		// The share editor closes after "Update share" (markSaved() already
-		// ran) and on "Cancel". In the latter case undo our in-place edit, just
-		// like core's cancel() restores the fields it edits in place — otherwise
-		// a cancelled selection would ride along with the next unrelated save.
+		// After "Cancel", undo the unsaved edit like core's cancel() does for
+		// its own fields; otherwise the next save would carry it.
 		this.restoreUnsaved()
 	},
 
@@ -305,12 +255,8 @@ export default defineComponent({
 		t,
 
 		toggleAll() {
-			// Mirrors a standard "select all" header checkbox: while anything
-			// this owner can control is hidden, clicking reveals everything
-			// they can control; only once everything they can control is
-			// already visible does it hide everything in one go. Forbidden
-			// entries stay hidden either way — they're not the owner's to
-			// control at all.
+			// Shows everything unless everything is shown already. Forbidden
+			// entries stay hidden either way.
 			this.hiddenIds = this.allSelected
 				? new Set(this.entries.map((entry) => entry.id))
 				: new Set(this.forbiddenIds)
@@ -319,11 +265,9 @@ export default defineComponent({
 
 		setEntryVisible(id: string, visible: boolean) {
 			if (this.forbiddenIds.has(id)) {
-				// Belt-and-suspenders beyond the template's :disabled binding —
-				// an admin-forbidden entry is never the owner's to toggle.
 				return
 			}
-			// Reassign (not mutate) so the Set change is actually reactive.
+			// Reassigned, not mutated, so the change is reactive.
 			const next = new Set(this.hiddenIds)
 			if (visible) {
 				next.delete(id)
@@ -335,20 +279,12 @@ export default defineComponent({
 		},
 
 		/**
-		 * Put the current selection into the share's attributes, so core's
-		 * own "Update share" request saves it.
-		 *
-		 * Back at the saved selection, the saved attribute is restored as it
-		 * was — including "no attribute at all", so merely toggling something
-		 * and back doesn't turn a share that follows the admin's defaults into
-		 * an explicitly configured one.
-		 *
-		 * Stored per entry: id, displayName and templateKey. Template-based
-		 * entries' ids end in a list position that isn't stable across page
-		 * loads; templateKey (`<app>:<extension>`, see hiddenEntries.ts) is.
-		 * Admin-forbidden entries are left out: they're enforced at read time
-		 * (computeHiddenIds()), so storing them per share would only go stale
-		 * after a later admin un-forbid.
+		 * Write the selection into the share's attributes for core's
+		 * "Update share" request. Back at the saved selection, the saved
+		 * attribute is restored exactly, including "none", so the link keeps
+		 * following the admin defaults. Each entry is stored with its
+		 * templateKey, since template entry ids aren't stable. Forbidden
+		 * entries apply anyway and aren't stored.
 		 */
 		writeSelection() {
 			if (sameIds(this.hiddenIds, this.savedHiddenIds)) {
@@ -378,8 +314,7 @@ export default defineComponent({
 </script>
 
 <style module lang="scss">
-// Laid out like core's neighbouring options in the share editor (plain text
-// in the main text colour, no card): a label with the popover button below.
+// Laid out like the neighbouring options in core's share editor.
 .wrapper {
 	display: flex;
 	flex-direction: column;

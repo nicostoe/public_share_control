@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+/**
+ * SPDX-FileCopyrightText: 2026 Nico Störzbach
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 namespace OCA\PublicShareControl\Listener;
 
 use OCA\Files\Event\LoadSidebar;
@@ -13,6 +18,8 @@ use OCP\EventDispatcher\IEventListener;
 use OCP\Util;
 
 /**
+ * Loads the sharing sidebar control, with the admin settings as initial state.
+ *
  * @template-implements IEventListener<LoadSidebar>
  */
 final class LoadSidebarListener implements IEventListener {
@@ -28,10 +35,6 @@ final class LoadSidebarListener implements IEventListener {
 			return;
 		}
 
-		// Global, not per-share, so pushed unconditionally — the owner
-		// sidebar (HideCreateNewEntry.vue) needs these to know which entries
-		// to force-hide-and-disable (forbidden) or pre-hide unless the owner
-		// already made their own explicit choice for this share (default).
 		$this->initialState->provideInitialState(Application::CONFIG_DEFAULT_HIDDEN_KEY, $this->adminConfig->getDefaultHiddenEntries());
 		$this->initialState->provideInitialState(Application::CONFIG_FORBIDDEN_KEY, $this->adminConfig->getForbiddenEntries());
 
