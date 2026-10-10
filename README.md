@@ -195,6 +195,8 @@ least Node 22.14.
   package attached. **Its notes come from `CHANGELOG.md`**: the version's
   section, or `## [Unreleased]` for a pre-release. The tag message is only
   stored with the tag.
+- **Only final releases go to the Nextcloud app store**, signed and uploaded
+  automatically. Pre-releases stay on GitHub, unsigned.
 
 Details, e.g. which versions `bump-version.sh` accepts: "Releasing" in
 `AGENTS.md`.

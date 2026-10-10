@@ -1,9 +1,14 @@
 # SPDX-FileCopyrightText: 2026 Nico Störzbach
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Pushing a tag vX.Y.Z publishes a GitHub release with the installable
-# package public_share_control-X.Y.Z.tar.gz attached — after every CI check
-# has passed. A tag like vX.Y.Z-beta.1 publishes a pre-release the same way.
+# Pushing a tag publishes a release, after every CI check has passed:
+# - vX.Y.Z: a GitHub release with the signed package attached, then the
+#   same package in the Nextcloud app store.
+# - vX.Y.Z-beta.1 and the like: a GitHub pre-release with the unsigned
+#   package, nothing else.
+# The private key and the app store token are secrets of the "appstore"
+# environment, used only by the final release jobs. Those never run npm, so
+# no dependency's install script runs next to the key.
 # See "Releasing" in AGENTS.md.
 
 name: Release
@@ -14,6 +19,10 @@ on:
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   version:
@@ -39,12 +48,10 @@ jobs:
     needs: version
     uses: ./.github/workflows/ci.yml
 
-  release:
-    name: Publish release
+  build:
+    name: Build
     needs: ci
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v7
 
@@ -56,9 +63,85 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: |
+            js/
+            css/
+          if-no-files-found: error
+
+  prerelease:
+    name: Publish pre-release (GitHub only)
+    needs: build
+    if: contains(github.ref_name, '-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: build
+
       - name: Package
         id: package
-        run: echo "path=$(scripts/package.sh | head -1)" >> "$GITHUB_OUTPUT"
+        run: |
+          scripts/package.sh
+          echo "path=build/artifacts/public_share_control-${GITHUB_REF_NAME#v}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the package as a workflow artifact too
+        uses: actions/upload-artifact@v7
+        with:
+          name: public_share_control-${{ github.ref_name }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE: ${{ steps.package.outputs.path }}
+        run: |
+          scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" "$PACKAGE" \
+            --verify-tag \
+            --prerelease \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md"
+
+  release:
+    name: Publish release (signed)
+    needs: build
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    environment: appstore
+    permissions:
+      contents: write
+    outputs:
+      download: ${{ steps.publish.outputs.download }}
+      signature: ${{ steps.package.outputs.signature }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: build
+
+      # Code signature checked by `occ integrity:check-app`, archive
+      # signature for the app store (see scripts/package.sh).
+      - name: Package and sign
+        id: package
+        env:
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+        run: |
+          key="$RUNNER_TEMP/app.key"
+          trap 'rm -f "$key"' EXIT
+          (umask 077 && printf '%s\n' "$APP_PRIVATE_KEY" > "$key")
+          scripts/package.sh --sign "$key"
+          path="build/artifacts/public_share_control-${GITHUB_REF_NAME#v}.tar.gz"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+          echo "signature=$(cat "$path.sig")" >> "$GITHUB_OUTPUT"
 
       - name: Keep the package as a workflow artifact too
         uses: actions/upload-artifact@v7
@@ -68,17 +151,38 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub release
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
+          PACKAGE: ${{ steps.package.outputs.path }}
         run: |
           scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
-          # v1.2.0-beta.1 and the like are marked as pre-releases (never "Latest").
-          prerelease=()
-          if [[ $GITHUB_REF_NAME == *-* ]]; then
-            prerelease=(--prerelease)
-          fi
-          gh release create "$GITHUB_REF_NAME" "${{ steps.package.outputs.path }}" \
+          gh release create "$GITHUB_REF_NAME" "$PACKAGE" \
             --verify-tag \
             --title "$GITHUB_REF_NAME" \
-            --notes-file "$RUNNER_TEMP/notes.md" \
-            "${prerelease[@]}"
+            --notes-file "$RUNNER_TEMP/notes.md"
+          echo "download=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$(basename "$PACKAGE")" >> "$GITHUB_OUTPUT"
+
+  # A job of its own, so a failed upload can be re-run on its own: the
+  # store then fetches the package already attached to the GitHub release.
+  appstore:
+    name: Publish in the Nextcloud app store
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      name: appstore
+      url: https://apps.nextcloud.com/apps/public_share_control
+    steps:
+      - name: Upload the release to apps.nextcloud.com
+        env:
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+          DOWNLOAD: ${{ needs.release.outputs.download }}
+          SIGNATURE: ${{ needs.release.outputs.signature }}
+        run: |
+          jq -n --arg download "$DOWNLOAD" --arg signature "$SIGNATURE" \
+            '{download: $download, signature: $signature, nightly: false}' \
+          | curl --fail-with-body --silent --show-error \
+            -X POST https://apps.nextcloud.com/api/v1/apps/releases \
+            -H "Authorization: Token $APPSTORE_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data-binary @-
