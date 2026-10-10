@@ -31,7 +31,7 @@
     },
     "require-dev": {
         "nextcloud/coding-standard": "^1.5",
-        "nextcloud/ocp": "^34.0",
-        "psalm/phar": "^6.0"
+        "nextcloud/ocp": "^34.0.4",
+        "psalm/phar": "^6.19.1"
     }
 }
