@@ -46,7 +46,17 @@ requests) keep Nextcloud's own upload page.
 
 ## Installation
 
-Download `public_share_control-<version>.tar.gz` from the
+**From the app store:** on the **Apps** page, open the category **Files**
+and click **Download and enable** for **Public Share Control**, or with
+`occ`:
+
+```bash
+sudo -u www-data php /path/to/nextcloud/occ app:install public_share_control
+```
+
+Updates then show up on the Apps page as for any other app.
+
+**By hand:** download `public_share_control-<version>.tar.gz` from the
 [releases page](https://github.com/nicostoe/public_share_control/releases),
 extract it into your apps directory (`apps/` or your custom apps path), make
 it belong to the user your web server runs as, then enable it on the
@@ -63,9 +73,9 @@ Debian and Ubuntu. Other systems use another one, e.g. `apache` (Fedora,
 RHEL), `http` (Arch) or `wwwrun` (openSUSE); in Docker, run `occ` with
 `docker exec -u www-data <container> php occ …`.
 
-To **update**, replace the `public_share_control` folder with the new one
-the same way, then run `occ upgrade` (or open the admin page, which offers
-the update).
+To **update** an installation by hand, replace the `public_share_control`
+folder with the new one the same way, then run `occ upgrade` (or open the
+admin page, which offers the update).
 
 No build step needed — the package ships pre-built JS/CSS.
 
@@ -204,6 +214,9 @@ Details, e.g. which versions `bump-version.sh` accepts: "Releasing" in
 ## Support
 
 Issues: <https://github.com/nicostoe/public_share_control/issues>
+
+Security vulnerabilities: please report them privately, see
+[SECURITY.md](SECURITY.md).
 
 ## License
 
