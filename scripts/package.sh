@@ -26,7 +26,7 @@ ARTIFACT=build/artifacts/$APP_ID-$VERSION.tar.gz
 rm -rf build/staging "$ARTIFACT"
 mkdir -p "$STAGING" build/artifacts
 
-cp -r appinfo lib templates l10n "$STAGING/"
+cp -r appinfo lib templates l10n img "$STAGING/"
 cp LICENSE CHANGELOG.md "$STAGING/"
 # Built assets, without source maps (they'd triple the package size).
 mkdir -p "$STAGING/js" "$STAGING/css"
