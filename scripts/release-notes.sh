@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Print the CHANGELOG.md section of a version (without its heading) for the
-# GitHub release notes; fails if it's missing or empty. A pre-release
-# (1.2.0-beta.1) uses the "## [Unreleased]" section, as the app store does.
+# GitHub release notes; fails if it's missing or empty. A release candidate
+# (1.2.0-rc.1) uses the "## [Unreleased]" section, as the app store does.
 set -euo pipefail
 
 VERSION=${1:?usage: $0 <version>}

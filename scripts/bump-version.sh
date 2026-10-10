@@ -7,17 +7,17 @@
 #
 # - Final release (1.2.0): CHANGELOG.md's "## [Unreleased]" section becomes
 #   "## [1.2.0]", and a new, empty "## [Unreleased]" goes above it.
-# - Pre-release (1.2.0-alpha.1, 1.2.0-beta.1, 1.2.0-rc.1): CHANGELOG.md stays
-#   as it is — the pre-release's notes are the current "## [Unreleased]"
+# - Release candidate (1.2.0-rc.1), the only kind of pre-release: CHANGELOG.md
+#   stays as it is — the pre-release's notes are the current "## [Unreleased]"
 #   section (see scripts/release-notes.sh).
 #
 # Commit, push and tag afterwards — see "Releasing" in AGENTS.md. The release
 # workflow refuses tags whose version doesn't match.
 set -euo pipefail
 
-VERSION=${1:?usage: $0 <version>, e.g. $0 1.2.0 or $0 1.2.0-beta.1}
-if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; then
-	echo "Version must look like 1.2.0, or 1.2.0-alpha.1 / -beta.1 / -rc.1 for a pre-release" >&2
+VERSION=${1:?usage: $0 <version>, e.g. $0 1.2.0 or $0 1.2.0-rc.1}
+if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+	echo "Version must look like 1.2.0, or 1.2.0-rc.1 for a release candidate" >&2
 	exit 1
 fi
 cd "$(dirname "$0")/.."
@@ -42,7 +42,7 @@ fi
 
 echo "Version set to $VERSION in appinfo/info.xml, package.json and package-lock.json."
 if [[ $VERSION == *-* ]]; then
-	echo "Pre-release: its notes are the current '## [Unreleased]' section of CHANGELOG.md."
+	echo "Release candidate: its notes are the current '## [Unreleased]' section of CHANGELOG.md."
 else
 	echo "CHANGELOG.md: '## [Unreleased]' is now '## [$VERSION]', with a new empty '## [Unreleased]' above it."
 fi

@@ -4,7 +4,7 @@
 # Pushing a tag publishes a release, after every CI check has passed:
 # - vX.Y.Z: a GitHub release with the signed package attached, then the
 #   same package in the Nextcloud app store.
-# - vX.Y.Z-beta.1 and the like: a GitHub pre-release with the unsigned
+# - vX.Y.Z-rc.1 (release candidate): a GitHub pre-release with the unsigned
 #   package, nothing else.
 # The private key and the app store token are secrets of the "appstore"
 # environment, used only by the final release jobs. Those never run npm, so

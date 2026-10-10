@@ -173,16 +173,16 @@ least Node 22.14.
 - **While developing:** commit and push as usual, and add every change users
   will notice to `CHANGELOG.md` under `## [Unreleased]`. Pushes to `main` only
   run CI — nothing is released.
-- **Pre-release**, to test a version on a real instance first:
+- **Release candidate**, to test a version on a real instance first:
 
   ```bash
-  scripts/bump-version.sh 1.1.0-beta.1
-  git commit -am "Release 1.1.0-beta.1" && git push   # wait for CI to pass
-  git tag -a v1.1.0-beta.1 -m "Public Share Control 1.1.0-beta.1" && git push origin v1.1.0-beta.1
+  scripts/bump-version.sh 1.1.0-rc.1
+  git commit -am "Release 1.1.0-rc.1" && git push   # wait for CI to pass
+  git tag -a v1.1.0-rc.1 -m "Public Share Control 1.1.0-rc.1" && git push origin v1.1.0-rc.1
   ```
 
   Install the package from the pre-release on GitHub and test it. Another
-  round is `-beta.2`, `-rc.1`, …
+  round is `-rc.2`, `-rc.3`, …
 - **Final release:**
 
   ```bash
