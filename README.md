@@ -24,10 +24,10 @@ upload button.
 panel gets a dropdown listing each entry the visitor's "New" menu
 would normally show (new folder, document, spreadsheet, whiteboard,
 diagram, the Text app's "Add folder description", …), with a checkbox per
-entry. All entries are selected (visible)
-by default. Deselect individual ones — or use "Select all"/"Deselect all"
-— to hide just those for visitors of *that specific link*. "Upload from
-device" can't be deselected and is always available.
+entry. All entries are selected (visible) by default. Deselect individual
+ones — or use "Select all"/"Deselect all" — to hide just those for visitors
+of *that specific link*. "Upload from device" can't be deselected and is
+always available.
 
 This is per-link by default: other links keep showing the full menu unless
 configured otherwise. An admin can additionally set instance-wide defaults
@@ -77,7 +77,8 @@ To **update** an installation by hand, replace the `public_share_control`
 folder with the new one the same way, then run `occ upgrade` (or open the
 admin page, which offers the update).
 
-No build step needed — the package ships pre-built JS/CSS.
+The package ships pre-built JS/CSS. A clone of this repository doesn't, see
+[Building from source](#building-from-source).
 
 ## Uninstalling
 
@@ -96,10 +97,10 @@ What stays behind has no effect:
   app stay in the app config, so a reinstall keeps them too. To delete them:
 
   ```bash
-  sudo -u www-data php occ config:app:delete public_share_control default-hidden-entries
-  sudo -u www-data php occ config:app:delete public_share_control forbidden-entries
-  sudo -u www-data php occ config:app:delete public_share_control quick-upload-enabled
-  sudo -u www-data php occ config:app:delete public_share_control discovered-entries
+  sudo -u www-data php /path/to/nextcloud/occ config:app:delete public_share_control default-hidden-entries
+  sudo -u www-data php /path/to/nextcloud/occ config:app:delete public_share_control forbidden-entries
+  sudo -u www-data php /path/to/nextcloud/occ config:app:delete public_share_control quick-upload-enabled
+  sudo -u www-data php /path/to/nextcloud/occ config:app:delete public_share_control discovered-entries
   ```
 
 ## Usage
@@ -124,8 +125,8 @@ What stays behind has no effect:
 
 ## Admin settings
 
-An admin can go to **Settings → Sharing → Public share control** to set,
-instance-wide:
+An admin can go to **Administration settings → Sharing → Public Share
+Control** to set, instance-wide:
 
 - **Hidden by default**: entries that start out unchecked for any share
   whose owner hasn't made their own explicit choice yet. The owner can still
@@ -143,11 +144,11 @@ templates (documents, spreadsheets, diagrams, whiteboards, …) come from the
 server; all others — "New folder", the Text app's "Add folder description",
 OnlyOffice's "New PDF form" and whatever other apps add — appear once an
 administrator has opened the Files app, where the app notes which entries
-are registered. Entries of apps installed later show up the same way.
+are registered.
 
-Entries from apps installed later are visible by default everywhere — all
-lists are "what to hide" lists, so anything not on one stays visible until
-an owner or admin adds it.
+Entries of apps installed later show up the same way, and are visible
+everywhere until an owner or admin hides them: all lists are "what to hide"
+lists.
 
 ## Good to know
 
