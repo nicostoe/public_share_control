@@ -155,6 +155,6 @@ Renovate (`renovate.json`; the Renovate GitHub app is installed on the repositor
 
 This project follows Nextcloud's [AI Contribution Policy](https://github.com/nextcloud/.github/blob/master/AI_POLICY.md). It is binding for contributions to repositories in the Nextcloud GitHub organization, such as the app certificate request, and applied here voluntarily:
 - Every commit with AI-assisted content ends with the trailer `Assisted-by: AGENT_NAME:MODEL_VERSION`, e.g. `Assisted-by: ClaudeCode:claude-opus-5-5`. Agents never add `Signed-off-by`.
-- Issues, PR descriptions and review comments, here and in Nextcloud's repositories, are written by the maintainer in their own words. Agents don't open issues or PRs.
+- In Nextcloud's repositories, issues, PR descriptions and review comments are written by the maintainer in their own words. In this repository, agents may open pull requests; the maintainer reviews and merges them.
 - Code comments describe the code (behavior, constraints the code can't express), never its history or how it came about; that belongs in commit messages, the CHANGELOG or this file. Keep them brief.
 - The maintainer reviews every change and must be able to explain it, especially dependencies, access control and anything security-related, and tests new features on a live instance in every context they reach (signed-in Files app, public links, password-protected links).
