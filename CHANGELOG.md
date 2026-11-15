@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Updated dependencies, including @nextcloud/dialogs 8: error messages now
+  appear at the bottom of the page.
+
 ## [1.0.0]
 
 First public release, for Nextcloud 34 and 35.
