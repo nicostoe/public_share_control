@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: 2026 Nico Störzbach
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Release with one click: Actions → "Prepare release" → Run workflow (on main).
+# Runs scripts/prepare-release.sh (next version, CHANGELOG entries from the
+# pull requests merged since the last release, commit, tag), pushes main and
+# the tag, then starts release.yml on the tag. A tag pushed with the
+# workflow's own token starts no workflow, a workflow_dispatch does.
+# This job never runs npm ci, so no dependency code runs with write access.
+
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'patch, minor, major, or an exact version such as 1.2.0'
+        required: true
+        default: patch
+        type: string
+
+concurrency:
+  group: release
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Commit, tag and start the release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the release commit and the tag
+      actions: write # start release.yml
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # bump-version.sh compares versions with PHP and sets them with npm.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Commit and tag
+        id: tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          scripts/prepare-release.sh "$VERSION"
+          echo "tag=v$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' appinfo/info.xml)" >> "$GITHUB_OUTPUT"
+
+      - name: Push main and the tag
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: git push --atomic origin HEAD:main "refs/tags/$TAG"
+
+      - name: Start the release workflow on the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh workflow run release.yml --ref "$TAG"
+          echo "Release $TAG started: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/workflows/release.yml" >> "$GITHUB_STEP_SUMMARY"

@@ -194,7 +194,12 @@ least Node 22.14.
 
   Install the package from the pre-release on GitHub and test it. Another
   round is `-rc.2`, `-rc.3`, …
-- **Final release:**
+- **Final release, one click:** GitHub → Actions → **Prepare release** →
+  Run workflow (branch `main`, version `patch`, `minor`, `major` or e.g.
+  `1.1.0`). It picks the next version, fills an empty `## [Unreleased]`
+  with the pull requests merged since the last release, commits, tags and
+  starts the release.
+- **Final release by hand:**
 
   ```bash
   scripts/bump-version.sh 1.1.0
