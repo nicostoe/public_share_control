@@ -33,6 +33,7 @@ final class BeforeTemplateRenderedListener implements IEventListener {
 
 	#[\Override]
 	public function handle(Event $event): void {
+		/** @psalm-suppress DocblockTypeContradiction */
 		if (!($event instanceof BeforeTemplateRenderedEvent)) {
 			return;
 		}
