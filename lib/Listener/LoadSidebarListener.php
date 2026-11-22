@@ -36,6 +36,7 @@ final class LoadSidebarListener implements IEventListener {
 
 	#[\Override]
 	public function handle(Event $event): void {
+		/** @psalm-suppress DocblockTypeContradiction */
 		if (!($event instanceof LoadSidebar)) {
 			return;
 		}
