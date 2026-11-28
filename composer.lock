@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c9a00a8cc82d5d278dd66fd1a027bfaf",
+    "content-hash": "9e1fd59d64e04daacd1b92ce1a0365d8",
     "packages": [],
     "packages-dev": [
         {
@@ -106,16 +106,16 @@
         },
         {
             "name": "nextcloud/ocp",
-            "version": "v34.0.5",
+            "version": "v34.0.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nextcloud-deps/ocp.git",
-                "reference": "4cca4dc853442cc7cd15d86cd1a78caf7661654f"
+                "reference": "a924e5ed00a92a8c852dd6ac5bcaf3a6cefe2772"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nextcloud-deps/ocp/zipball/4cca4dc853442cc7cd15d86cd1a78caf7661654f",
-                "reference": "4cca4dc853442cc7cd15d86cd1a78caf7661654f",
+                "url": "https://api.github.com/repos/nextcloud-deps/ocp/zipball/a924e5ed00a92a8c852dd6ac5bcaf3a6cefe2772",
+                "reference": "a924e5ed00a92a8c852dd6ac5bcaf3a6cefe2772",
                 "shasum": ""
             },
             "require": {
@@ -149,10 +149,10 @@
             "description": "Composer package containing Nextcloud's public OCP API and the unstable NCU API",
             "support": {
                 "issues": "https://github.com/nextcloud-deps/ocp/issues",
-                "source": "https://github.com/nextcloud-deps/ocp/tree/v34.0.5"
+                "source": "https://github.com/nextcloud-deps/ocp/tree/v34.0.6"
             },
-            "time": "2026-10-06T03:44:04+00:00",
-            "published-time": "2026-10-16T02:06:59+00:00"
+            "time": "2026-10-31T03:08:26+00:00",
+            "published-time": "2026-11-13T03:59:03+00:00"
         },
         {
             "name": "php-cs-fixer/shim",
@@ -214,16 +214,16 @@
         },
         {
             "name": "psalm/phar",
-            "version": "7.3.1",
+            "version": "7.18.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/psalm/phar.git",
-                "reference": "aa16d849585c6261e0a743e5e8a4f256d8517149"
+                "reference": "29844f5629cc80639e377299336ec29b16a79562"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/psalm/phar/zipball/aa16d849585c6261e0a743e5e8a4f256d8517149",
-                "reference": "aa16d849585c6261e0a743e5e8a4f256d8517149",
+                "url": "https://api.github.com/repos/psalm/phar/zipball/29844f5629cc80639e377299336ec29b16a79562",
+                "reference": "29844f5629cc80639e377299336ec29b16a79562",
                 "shasum": ""
             },
             "require": {
@@ -243,10 +243,10 @@
             "description": "Composer-based Psalm Phar",
             "support": {
                 "issues": "https://github.com/psalm/phar/issues",
-                "source": "https://github.com/psalm/phar/tree/7.3.1"
+                "source": "https://github.com/psalm/phar/tree/7.18.0"
             },
-            "time": "2026-11-12T01:30:30+00:00",
-            "published-time": "2026-11-12T01:30:40+00:00"
+            "time": "2026-11-24T13:15:21+00:00",
+            "published-time": "2026-11-24T13:15:49+00:00"
         },
         {
             "name": "psr/clock",

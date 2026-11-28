@@ -40,19 +40,19 @@
     "@nextcloud/router": "^3.2.0",
     "@nextcloud/sharing": "^0.4.0",
     "@nextcloud/vue": "^9.14.1",
-    "vue": "^3.5.45",
+    "vue": "^3.5.46",
     "vue-material-design-icons": "^5.4.0"
   },
   "devDependencies": {
     "@nextcloud/browserslist-config": "^3.1.2",
     "@nextcloud/eslint-config": "^9.0.1",
     "@nextcloud/vite-config": "^2.5.4",
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "@vue/tsconfig": "^0.9.1",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "happy-dom": "^21.0.4",
     "vite": "^7.3.8",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.1"
   },
   "engines": {
     "node": "^24.0.0",
